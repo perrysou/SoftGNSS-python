@@ -26,32 +26,6 @@ def calculatePseudoranges(trackResults=None, msOfTheSignal=None, channelList=Non
     #   Outputs:
     #       pseudoranges    - relative pseudoranges to the satellites.
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis
-    # Written by Darius Plausinaitis
-    # Based on Peter Rinder and Nicolaj Bertelsen
-    # --------------------------------------------------------------------------
-
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: calculatePseudoranges.m,v 1.1.2.18 2006/08/09 17:20:11 dpl Exp $
 
     # --- Set initial travel time to infinity ----------------------------------
     # Later in the code a shortest pseudorange will be selected. Therefore
@@ -102,30 +76,6 @@ def postNavigation(trackResults=None, settings=None, *args, **kwargs):
     #                       coordinate systems (at least ECEF and UTM).
     #       eph             - received ephemerides of all SV (structure array).
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis
-    # Written by Darius Plausinaitis with help from Kristin Larson
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: postNavigation.m,v 1.1.2.22 2006/08/09 17:20:11 dpl Exp $
 
     ## Check is there enough data to obtain any navigation solution ===========
     # It is necessary to have at least three subframes (number 1, 2 and 3) to

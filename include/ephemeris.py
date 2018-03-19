@@ -14,30 +14,6 @@ def twosComp2dec(binaryNumber=None, *args, **kwargs):
 
     # intNumber = twosComp2dec(binaryNumber)
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis
-    # Written by Darius Plausinaitis
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: twosComp2dec.m,v 1.1.2.4 2006/08/14 11:38:22 dpl Exp $
 
     # --- Check if the input is string -----------------------------------------
     if type(binaryNumber) is not str:
@@ -76,29 +52,6 @@ def checkPhase(word=None, D30Star=None, *args, **kwargs):
     #       word        - word with corrected polarity of the data bits
     #                   (character array).
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Written by Darius Plausinaitis and Dennis M. Akos
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: checkPhase.m,v 1.1.2.4 2006/08/14 11:38:22 dpl Exp $
     word_new = []
     if D30Star == '1':
         # Data bits must be inverted
@@ -139,30 +92,6 @@ def ephemeris(bits=None, D30Star=None, *args, **kwargs):
     #                   stream (in seconds)
     #       eph         - SV ephemeris
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis and Kristin Larson
-    # Written by Darius Plausinaitis and Kristin Larson
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: ephemeris.m,v 1.1.2.7 2006/08/14 11:38:22 dpl Exp $
 
     ## Check if there is enough data ==========================================
     if len(bits) < 1500:

@@ -59,15 +59,6 @@ def satpos(transmitTime=None, prnList=None, eph=None, settings=None, *args, **kw
     #       satPositions  - position of satellites (in ECEF system [X; Y; Z;])
     #       satClkCorr    - correction of satellite clocks
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    # --------------------------------------------------------------------------
-    # Based on Kai Borre 04-09-96
-    # Copyright (c) by Kai Borre
-    # Updated by Darius Plausinaitis, Peter Rinder and Nicolaj Bertelsen
-
-    # CVS record:
-    # $Id: satpos.m,v 1.1.2.17 2007/01/30 09:45:12 dpl Exp $
 
     ## Initialize constants ===================================================
     numOfSatellites = prnList.size

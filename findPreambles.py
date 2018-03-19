@@ -23,30 +23,6 @@ def navPartyChk(ndat=None, *args, **kwargs):
     #                   means the bits #1-24 of the current word must be
     #                   inverted.
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Written by Darius Plausinaitis, Kristin Larson
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: navPartyChk.m,v 1.1.2.5 2006/08/14 11:38:22 dpl Exp $
-
     # In order to accomplish the exclusive or operation using multiplication
     # this program represents a '0' with a '-1' and a '1' with a '1' so that
     # the exclusive or table holds true for common data operations
@@ -131,32 +107,6 @@ def findPreambles(trackResults=None, settings=None, *args, **kwargs):
     #                       be set to 0 if no valid preambles were detected in
     #                       the channel.
     #       activeChnList   - list of channels containing valid preambles
-
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis, Peter Rinder and Nicolaj Bertelsen
-    # Written by Darius Plausinaitis, Peter Rinder and Nicolaj Bertelsen
-    # --------------------------------------------------------------------------
-
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: findPreambles.m,v 1.1.2.10 2006/08/14 11:38:22 dpl Exp $
 
     # Preamble search can be delayed to a later point in the tracking results
     # to avoid noise due to tracking loop transients

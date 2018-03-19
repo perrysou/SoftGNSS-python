@@ -21,31 +21,6 @@ def generateCAcode(PRN=None, *args, **kwargs):
     #       CAcode      - a vector containing the desired C/A code sequence
     #                   (chips).
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis
-    # Written by Darius Plausinaitis
-    # Based on Dennis M. Akos, Peter Rinder and Nicolaj Bertelsen
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: generateCAcode.m,v 1.1.2.5 2006/08/14 11:38:22 dpl Exp $
 
     # --- Make the code shift array. The shift depends on the PRN number -------
     # The g2s vector holds the appropriate shift of the g2 code to generate
@@ -125,32 +100,6 @@ def makeCaTable(settings=None, *args, **kwargs):
     #       caCodesTable    - an array of arrays (matrix) containing C/A codes
     #                       for all satellite PRN-s
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis
-    # Written by Darius Plausinaitis
-    # Based on Peter Rinder and Nicolaj Bertelsen
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: makeCaTable.m,v 1.1.2.6 2006/08/14 11:38:22 dpl Exp $
-
     # --- Find number of samples per spreading code ----------------------------
     samplesPerCode = np.long(np.round(settings.samplingFreq / (settings.codeFreqBasis / settings.codeLength)))
     # makeCaTable.m:43
@@ -207,31 +156,6 @@ def acquisition(longSignal=None, settings=None, *args, **kwargs):
     #                       field "carrFreq" is set to 0 if the signal is not
     #                       detected for the given PRN number.
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    #
-    # Copyright (C) Darius Plausinaitis and Dennis M. Akos
-    # Written by Darius Plausinaitis and Dennis M. Akos
-    # Based on Peter Rinder and Nicolaj Bertelsen
-    # --------------------------------------------------------------------------
-    # This program is free software; you can redistribute it and/or
-    # modify it under the terms of the GNU General Public License
-    # as published by the Free Software Foundation; either version 2
-    # of the License, or (at your option) any later version.
-
-    # This program is distributed in the hope that it will be useful,
-    # but WITHOUT ANY WARRANTY; without even the implied warranty of
-    # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    # GNU General Public License for more details.
-
-    # You should have received a copy of the GNU General Public License
-    # along with this program; if not, write to the Free Software
-    # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
-    # USA.
-    # --------------------------------------------------------------------------
-
-    # CVS record:
-    # $Id: acquisition.m,v 1.1.2.12 2006/08/14 12:08:03 dpl Exp $
 
     ## Initialization =========================================================
 

@@ -1,4 +1,5 @@
 import numpy as np
+
 from geoFunctions import e_r_corr, topocent, tropo
 
 
@@ -23,16 +24,6 @@ def leastSquarePos(satpos=None, obs=None, settings=None, *args, **kwargs):
     #       az          - Satellites azimuth angles (degrees)
     #       dop         - Dilutions Of Precision ([GDOP PDOP HDOP VDOP TDOP])
 
-    # --------------------------------------------------------------------------
-    #                           SoftGNSS v3.0
-    # --------------------------------------------------------------------------
-    # Based on Kai Borre
-    # Copyright (c) by Kai Borre
-    # Updated by Darius Plausinaitis, Peter Rinder and Nicolaj Bertelsen
-
-    # CVS record:
-    # $Id: leastSquarePos.m,v 1.1.2.12 2006/08/22 13:45:59 dpl Exp $
-    # ==========================================================================
 
     # === Initialization =======================================================
     nmbOfIterations = 7
