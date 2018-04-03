@@ -25,18 +25,17 @@ def e_r_corr(traveltime=None, X_sat=None, *args, **kwargs):
     # ==========================================================================
 
     Omegae_dot = 7.292115147e-05
-    # e_r_corr.m:21
 
     # --- Find rotation angle --------------------------------------------------
     omegatau = Omegae_dot * traveltime
-    # e_r_corr.m:24
+
     # --- Make a rotation matrix -----------------------------------------------
     R3 = np.array([[np.cos(omegatau), np.sin(omegatau), 0.0],
                    [-np.sin(omegatau), np.cos(omegatau), 0.0],
                    [0.0, 0.0, 1.0]])
-    # e_r_corr.m:27
+
     # --- Do the rotation ------------------------------------------------------
     X_sat_rot = R3.dot(X_sat)
     return X_sat_rot
-# e_r_corr.m:32
+
 ######## end e_r_corr.m ####################

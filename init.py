@@ -54,7 +54,7 @@ print '\n', \
     '                   -------------------------------\n\n'
 ## Initialize constants, settings =========================================
 settings = initSettings.Settings()
-# ./init.m:53
+
 ## Generate plot of raw data and ask if ready to start processing =========
 try:
     print 'Probing data "%s"...' % settings.fileName
@@ -68,7 +68,7 @@ print '  (run setSettings or change settings in "initSettings.m" to reconfigure)
 print ' '
 gnssStart = True
 # gnssStart = int(raw_input('Enter "1" to initiate GNSS processing or "0" to exit : ').strip())
-# ./init.m:70
+
 if gnssStart:
     print ' '
     postProcessing.postProcessing(settings)

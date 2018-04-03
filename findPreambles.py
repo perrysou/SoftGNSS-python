@@ -37,7 +37,6 @@ def navPartyChk(ndat=None, *args, **kwargs):
     # --- Check if the data bits must be inverted ------------------------------
     if ndat[1] != 1:
         ndat[2:26] *= (-1)
-    # navPartyChk.m:57
 
     # --- Calculate 6 parity bits ----------------------------------------------
     # The elements of the ndat array correspond to the bits showed in the table
@@ -50,39 +49,39 @@ def navPartyChk(ndat=None, *args, **kwargs):
     parity[0] = ndat[0] * ndat[2] * ndat[3] * ndat[4] * ndat[6] * \
                 ndat[7] * ndat[11] * ndat[12] * ndat[13] * ndat[14] * \
                 ndat[15] * ndat[18] * ndat[19] * ndat[21] * ndat[24]
-    # navPartyChk.m:68
+
     parity[1] = ndat[1] * ndat[3] * ndat[4] * ndat[5] * ndat[7] * \
                 ndat[8] * ndat[12] * ndat[13] * ndat[14] * ndat[15] * \
                 ndat[16] * ndat[19] * ndat[20] * ndat[22] * ndat[25]
-    # navPartyChk.m:72
+
     parity[2] = ndat[0] * ndat[2] * ndat[4] * ndat[5] * ndat[6] * \
                 ndat[8] * ndat[9] * ndat[13] * ndat[14] * ndat[15] * \
                 ndat[16] * ndat[17] * ndat[20] * ndat[21] * ndat[23]
-    # navPartyChk.m:76
+
     parity[3] = ndat[1] * ndat[3] * ndat[5] * ndat[6] * ndat[7] * \
                 ndat[9] * ndat[10] * ndat[14] * ndat[15] * ndat[16] * \
                 ndat[17] * ndat[18] * ndat[21] * ndat[22] * ndat[24]
-    # navPartyChk.m:80
+
     parity[4] = ndat[1] * ndat[2] * ndat[4] * ndat[6] * ndat[7] * \
                 ndat[8] * ndat[10] * ndat[11] * ndat[15] * ndat[16] * \
                 ndat[17] * ndat[18] * ndat[19] * ndat[22] * ndat[23] * \
                 ndat[25]
-    # navPartyChk.m:84
+
     parity[5] = ndat[0] * ndat[4] * ndat[6] * ndat[7] * ndat[9] * \
                 ndat[10] * ndat[11] * ndat[12] * ndat[14] * ndat[16] * \
                 ndat[20] * ndat[23] * ndat[24] * ndat[25]
-    # navPartyChk.m:89
+
     # --- Compare if the received parity is equal the calculated parity --------
     if (parity == ndat[26:]).sum() == 6:
         # Parity is OK. Function output is -1 or 1 depending if the data bits
         # must be inverted or not. The "ndat[2]" is D30* bit - the last  bit of
         # previous subframe.
         status = -1 * ndat[1]
-    # navPartyChk.m:99
+
     else:
         # Parity failure
         status = 0
-    # navPartyChk.m:102
+
     return status
 
 
@@ -111,43 +110,43 @@ def findPreambles(trackResults=None, settings=None, *args, **kwargs):
     # Preamble search can be delayed to a later point in the tracking results
     # to avoid noise due to tracking loop transients
     searchStartOffset = 0
-    # ./findPreambles.m:51
+
     # --- Initialize the firstSubFrame array -----------------------------------
     firstSubFrame = np.zeros(settings.numberOfChannels, dtype=int)
-    # ./findPreambles.m:54
+
     # --- Generate the preamble pattern ----------------------------------------
     preamble_bits = np.r_[1, - 1, - 1, - 1, 1, - 1, 1, 1]
-    # ./findPreambles.m:57
+
     # "Upsample" the preamble - make 20 vales per one bit. The preamble must be
     # found with precision of a sample.
     preamble_ms = np.kron(preamble_bits, np.ones(20))
-    # ./findPreambles.m:61
+
     # --- Make a list of channels excluding not tracking channels --------------
     activeChnList = (trackResults.status != '-').nonzero()[0]
-    # ./findPreambles.m:64
+
     # === For all tracking channels ...
     for channelNr in range(len(activeChnList)):
         ## Correlate tracking output with preamble ================================
         # Read output from tracking. It contains the navigation bits. The start
         # of record is skiped here to avoid tracking loop transients.
         bits = trackResults[channelNr].I_P[searchStartOffset:].copy()
-        # ./findPreambles.m:72
+
         bits[bits > 0] = 1
-        # ./findPreambles.m:75
+
         bits[bits <= 0] = - 1
-        # ./findPreambles.m:76
+
         # have to zero pad the preamble so that they are the same length
         tlmXcorrResult = np.correlate(bits,
                                       np.pad(preamble_ms, (0, bits.size - preamble_ms.size), 'constant'),
                                       mode='full')
-        # ./findPreambles.m:79
+
         ## Find all starting points off all preamble like patterns ================
         # clear('index')
         # clear('index2')
         xcorrLength = (len(tlmXcorrResult) + 1) / 2
-        # ./findPreambles.m:85
+
         index = (np.abs(tlmXcorrResult[xcorrLength - 1:xcorrLength * 2]) > 153).nonzero()[0] + searchStartOffset
-        # ./findPreambles.m:88
+
         ## Analyze detected preamble like patterns ================================
         for i in range(len(index)):
             # --- Find distances in time between this occurrence and the rest of
@@ -155,7 +154,7 @@ def findPreambles(trackResults=None, settings=None, *args, **kwargs):
             # subframe), the do further verifications by validating the parities
             # of two GPS words
             index2 = index - index[i]
-            # ./findPreambles.m:100
+
             if (index2 == 6000).any():
                 # === Re-read bit vales for preamble verification ==============
                 # Preamble occurrence is verified by checking the parity of
@@ -167,21 +166,21 @@ def findPreambles(trackResults=None, settings=None, *args, **kwargs):
                 # 60 bits for the first two 30bit words (TLM and HOW words).
                 # The index is pointing at the start of TLM word.
                 bits = trackResults[channelNr].I_P[index[i] - 40:index[i] + 20 * 60].copy()
-                # ./findPreambles.m:113
+
                 bits = bits.reshape(20, -1, order='F')
-                # ./findPreambles.m:117
+
                 bits = bits.sum(0)
-                # ./findPreambles.m:118
+
                 bits[bits > 0] = 1
-                # ./findPreambles.m:121
+
                 bits[bits <= 0] = - 1
-                # ./findPreambles.m:122
+
                 if navPartyChk(bits[:32]) != 0 and navPartyChk(bits[30:62]) != 0:
                     # Parity was OK. Record the preamble start position. Skip
                     # the rest of preamble pattern checking for this channel
                     # and process next channel.
                     firstSubFrame[channelNr] = index[i]
-                    # ./findPreambles.m:131
+
                     break
         # Exclude channel from the active channel list if no valid preamble was
         # detected
@@ -189,7 +188,7 @@ def findPreambles(trackResults=None, settings=None, *args, **kwargs):
             # Exclude channel from further processing. It does not contain any
             # valid preamble and therefore nothing more can be done for it.
             activeChnList = np.setdiff1d(activeChnList, channelNr)
-            # ./findPreambles.m:144
+
             print 'Could not find valid preambles in channel %2d !' % channelNr
     return firstSubFrame, activeChnList
 

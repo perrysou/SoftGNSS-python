@@ -29,19 +29,19 @@ def probeData(*args, **kwargs):
     ## Check the number of arguments ==========================================
     if nargin == 1:
         settings = args[0]
-        # ./probeData.m:45
+
         fileNameStr = settings.fileName
-    # ./probeData.m:46
+
     elif nargin == 2:
         fileNameStr, settings = args
-        # ./probeData.m:48
-        if type(fileNameStr) is not str:
+
+        if ~isinstance(fileNameStr, str):
             raise TypeError('File name must be a string')
     else:
         raise Exception('Incorrect number of arguments')
 
     ## Generate plot of raw data ==============================================
-    # ./probeData.m:57
+
     try:
         with open(fileNameStr, 'rb') as fid:
             # Move the starting point of processing. Can be used to start the
@@ -49,12 +49,12 @@ def probeData(*args, **kwargs):
             # records).
             fid.seek(settings.skipNumberOfBytes, 0)
             samplesPerCode = long(round(settings.samplingFreq / (settings.codeFreqBasis / settings.codeLength)))
-            # ./probeData.m:66
+
             try:
                 data = np.fromfile(fid,
                                    settings.dataType,
                                    10 * samplesPerCode)
-            # ./probeData.m:70
+
             except IOError:
                 # The file is too short
                 print 'Could not read enough data from the data file.'
@@ -62,7 +62,6 @@ def probeData(*args, **kwargs):
             plt.figure(100)
             plt.clf()
             timeScale = np.arange(0, 0.005, 1 / settings.samplingFreq)
-            # ./probeData.m:83
 
             plt.subplot(2, 2, 1)
             plt.plot(1000 * timeScale[1:round(samplesPerCode / 50)],
@@ -89,10 +88,10 @@ def probeData(*args, **kwargs):
             plt.subplot(2, 2, 3.5)
             plt.hist(data, np.arange(- 128, 128))
             dmax = np.max(np.abs(data)) + 1
-            # ./probeData.m:108
+
             plt.axis('tight')
             adata = plt.axis()
-            # ./probeData.m:110
+
             plt.axis([-dmax, dmax, adata[2], adata[3]])
             plt.grid('on')
             plt.title('Histogram')

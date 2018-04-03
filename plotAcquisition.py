@@ -33,13 +33,13 @@ def plotAcquisition(acqResults=None):
 
     ## Plot all results =======================================================
     f, hAxes = plt.subplots()
-    # ./plotAcquisition.m:39
+
     plt.bar(range(1, 33), acqResults.peakMetric)
     plt.title('Acquisition results')
     plt.xlabel('PRN number (no bar - SV is not in the acquisition list)')
     plt.ylabel('Acquisition Metric ($1^{st}$ to $2^{nd}$ Correlation Peaks Ratio')
     oldAxis = plt.axis()
-    # ./plotAcquisition.m:47
+
     plt.axis([0, 33, 0, oldAxis[-1]])
     plt.xticks(range(1, 33), size=12)
     # plt.minorticks_on()
@@ -47,7 +47,7 @@ def plotAcquisition(acqResults=None):
     ## Mark acquired signals ==================================================
 
     acquiredSignals = acqResults.peakMetric * (acqResults.carrFreq > 0)
-    # ./plotAcquisition.m:54
+
     plt.bar(range(1, 33), acquiredSignals, FaceColor=(0, 0.8, 0))
     plt.legend(['Not acquired signals', 'Acquired signals'])
     plt.show()

@@ -48,30 +48,30 @@ def plotNavigation(navSolutions=None, settings=None, *args, **kwargs):
             # === Compute mean values ==========================================
             # Remove NaN-s or the output of the function MEAN will be NaN.
             refCoord.E = np.nanmean(navSolutions[0].E)
-            # ./plotNavigation.m:50
+
             refCoord.N = np.nanmean(navSolutions[0].N)
-            # ./plotNavigation.m:51
+
             refCoord.U = np.nanmean(navSolutions[0].U)
-            # ./plotNavigation.m:52
+
             meanLongitude = np.nanmean(navSolutions[0].longitude)
-            # ./plotNavigation.m:55
+
             meanLatitude = np.nanmean(navSolutions[0].latitude)
-            # ./plotNavigation.m:57
+
             refPointLgText = 'Mean Position' + '\\newline Lat: %.5f $^\circ$' % meanLatitude + \
                              '\\newline Lng: %.5f $^\circ$' % meanLongitude + \
                              '\\newline Hgt: %+6.1f' % np.nanmean(navSolutions[0].height)
-        # ./plotNavigation.m:60
+
         else:
             refPointLgText = 'Reference Position'
-            # ./plotNavigation.m:71
+
             refCoord.E = settings.truePosition.E
-            # ./plotNavigation.m:72
+
             refCoord.N = settings.truePosition.N
-            # ./plotNavigation.m:73
+
             refCoord.U = settings.truePosition.U
-        # ./plotNavigation.m:74
+
         figureNumber = 300
-        # ./plotNavigation.m:77
+
         # figure windows, when many figures are closed and reopened. Figures
         # drawn or opened by the user, will not be "overwritten" by this
         # function if the auto numbering is not used.
@@ -81,13 +81,13 @@ def plotNavigation(navSolutions=None, settings=None, *args, **kwargs):
         f.set_label('Navigation solutions')
         spec = gs.GridSpec(2, 2)
         h11 = plt.subplot(spec[0:2])
-        # ./plotNavigation.m:89
+
         # the axes3d module is needed for the following line
         dummy = axes3d.Axes3D
         h31 = plt.subplot(spec[2], projection='3d')
-        # ./plotNavigation.m:90
+
         h32 = plt.subplot(spec[3], projection='polar')
-        # ./plotNavigation.m:91
+
         ## Plot all figures =======================================================
         # --- Coordinate differences in UTM system -----------------------------
         h11.plot(navSolutions[0].E - refCoord.E, '-',

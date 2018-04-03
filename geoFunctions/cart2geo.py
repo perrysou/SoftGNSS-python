@@ -24,48 +24,48 @@ def cart2geo(X=None, Y=None, Z=None, i=None, *args, **kwargs):
     # ==========================================================================
 
     a = np.array([6378388.0, 6378160.0, 6378135.0, 6378137.0, 6378137.0])
-    # cart2geo.m:22
+
     f = np.array([1 / 297, 1 / 298.247, 1 / 298.26, 1 / 298.257222101, 1 / 298.257223563])
-    # cart2geo.m:23
+
     lambda_ = np.arctan2(Y, X)
-    # cart2geo.m:25
+
     ex2 = (2 - f[i]) * f[i] / ((1 - f[i]) ** 2)
-    # cart2geo.m:26
+
     c = a[i] * np.sqrt(1 + ex2)
-    # cart2geo.m:27
+
     phi = np.arctan(Z / (np.sqrt(X ** 2 + Y ** 2) * (1 - (2 - f[i])) * f[i]))
-    # cart2geo.m:28
+
     h = 0.1
-    # cart2geo.m:30
+
     oldh = 0
-    # cart2geo.m:30
+
     iterations = 0
-    # cart2geo.m:31
+
     while abs(h - oldh) > 1e-12:
 
         oldh = h
-        # cart2geo.m:33
+
         N = c / np.sqrt(1 + ex2 * np.cos(phi) ** 2)
-        # cart2geo.m:34
+
         phi = np.arctan(Z / (np.sqrt(X ** 2 + Y ** 2) * (1 - (2 - f[i]) * f[i] * N / (N + h))))
-        # cart2geo.m:35
+
         h = np.sqrt(X ** 2 + Y ** 2) / np.cos(phi) - N
-        # cart2geo.m:36
+
         iterations += 1
-        # cart2geo.m:38
+
         if iterations > 100:
             print 'Failed to approximate h with desired precision. h-oldh: %e.' % (h - oldh)
             break
 
     phi *= (180 / np.pi)
-    # cart2geo.m:45
+
     # b = zeros(1,3);
     # b(1,1) = fix(phi);
     # b(2,1) = fix(rem(phi,b(1,1))*60);
     # b(3,1) = (phi-b(1,1)-b(1,2)/60)*3600;
 
     lambda_ *= (180 / np.pi)
-    # cart2geo.m:51
+
     # l = zeros(1,3);
     # l(1,1) = fix(lambda);
     # l(2,1) = fix(rem(lambda,l(1,1))*60);
