@@ -35,7 +35,7 @@ def plotTracking(channelList=None, trackResults=None, settings=None, *args, **kw
 
     # Protection - if the list contains incorrect channel numbers
     channelList = np.intersect1d(channelList, range(settings.numberOfChannels))
-    # ./plotTracking.m:37
+
     # === For all listed channels ==============================================
     for channelNr in channelList:
         ## Select (or create) and clear the figure ================================
@@ -50,22 +50,22 @@ def plotTracking(channelList=None, trackResults=None, settings=None, *args, **kw
         # Row 1
         spec = gs.GridSpec(3, 3)
         h11 = plt.subplot(spec[0, 0])
-        # ./plotTracking.m:57
+
         h12 = plt.subplot(spec[0, 1:])
-        # ./plotTracking.m:58
+
         h21 = plt.subplot(spec[1, 0])
-        # ./plotTracking.m:60
+
         h22 = plt.subplot(spec[1, 1:])
-        # ./plotTracking.m:61
+
         h31 = plt.subplot(spec[2, 0])
-        # ./plotTracking.m:63
+
         h32 = plt.subplot(spec[2, 1])
-        # ./plotTracking.m:64
+
         h33 = plt.subplot(spec[2, 2])
-        # ./plotTracking.m:65
+
         ## Plot all figures =======================================================
         timeAxisInSeconds = np.arange(settings.msToProcess) / 1000.0
-        # ./plotTracking.m:69
+
         h11.plot(trackResults[channelNr].I_P, trackResults[channelNr].Q_P, '.')
         h11.grid()
         h11.axis('equal')
@@ -89,7 +89,7 @@ def plotTracking(channelList=None, trackResults=None, settings=None, *args, **kw
         h22.axis('tight')
         h22.legend(['$\sqrt{I_{E}^2 + Q_{E}^2}$', '$\sqrt{I_{P}^2 + Q_{P}^2}$',
                     '$\sqrt{I_{L}^2 + Q_{L}^2}$'])
-        # # ./plotTracking.m:116
+
         h31.plot(timeAxisInSeconds, trackResults[channelNr].pllDiscrFilt, 'b')
         h31.grid()
         h31.axis('tight')

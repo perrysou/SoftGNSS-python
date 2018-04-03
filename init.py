@@ -29,8 +29,7 @@ import postProcessing
 # Then the processing is started.
 
 # --------------------------------------------------------------------------
-# CVS record:
-# $Id: init.m,v 1.14.2.21 2006/08/22 13:46:00 dpl Exp $
+
 
 ## Clean up the environment first =========================================
 # clear
@@ -54,7 +53,7 @@ print '\n', \
     '                   -------------------------------\n\n'
 ## Initialize constants, settings =========================================
 settings = initSettings.Settings()
-# ./init.m:53
+
 ## Generate plot of raw data and ask if ready to start processing =========
 try:
     print 'Probing data "%s"...' % settings.fileName
@@ -68,7 +67,7 @@ print '  (run setSettings or change settings in "initSettings.m" to reconfigure)
 print ' '
 gnssStart = True
 # gnssStart = int(raw_input('Enter "1" to initiate GNSS processing or "0" to exit : ').strip())
-# ./init.m:70
+
 if gnssStart:
     print ' '
     postProcessing.postProcessing(settings)

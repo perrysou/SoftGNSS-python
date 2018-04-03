@@ -5,13 +5,13 @@ from scipy.io import loadmat
 class Channel(object):
     def __init__(self):
         self.PRN = 0
-        # preRun.m:46
+
         self.acquiredFreq = 0.0
-        # preRun.m:47
+
         self.codePhase = 0.0
-        # preRun.m:48
+
         self.status = '-'
-        # preRun.m:50
+
         # "-" - "off" - no signal to track
         # "T" - Tracking state
 
@@ -35,33 +35,32 @@ def preRun(acqResults=None, settings=None, *args, **kwargs):
     #       channel     - structure contains information for each channel (like
     #                   properties of the tracked signal, channel status etc.).
 
-
     ## Initialize all channels ================================================
     PRN = np.zeros(settings.numberOfChannels, dtype='int64')
     acquiredFreq = np.zeros(settings.numberOfChannels)
     codePhase = np.zeros(settings.numberOfChannels)
     status = ['-' for _ in range(settings.numberOfChannels)]
-    # preRun.m:44
+
     # --- Copy initial data to all channels ------------------------------------
-    # preRun.m:55
+
     ## Copy acquisition results ===============================================
 
     # --- Sort peaks to find strongest signals, keep the peak index information
     PRNindexes = sorted(enumerate(acqResults.peakMetric),
                         key=lambda x: x[-1], reverse=True)
-    # preRun.m:60
+
     # --- Load information about each satellite --------------------------------
     # Maximum number of initialized channels is number of detected signals, but
     # not more as the number of channels specified in the settings.
     for ii in range(min(settings.numberOfChannels, sum(acqResults.carrFreq > 0))):
         PRN[ii] = PRNindexes[ii][0] + 1
-        # preRun.m:66
+
         acquiredFreq[ii] = acqResults.carrFreq[PRNindexes[ii][0]]
-        # preRun.m:67
+
         codePhase[ii] = acqResults.codePhase[PRNindexes[ii][0]]
-        # preRun.m:68
+
         status[ii] = 'T'
-    # preRun.m:71
+
     channel = np.core.records.fromarrays([PRN, acquiredFreq, codePhase, status],
                                          names='PRN,acquiredFreq,codePhase,status')
     return channel
@@ -79,7 +78,6 @@ def showChannelStatus(channel=None, settings=None, *args, **kwargs):
     #       channel     - data for each channel. It is used to initialize and
     #                   at the processing of the signal (tracking part).
     #       settings    - receiver settings
-
 
     print ('\n*=========*=====*===============*===========*=============*========*')
     print ('| Channel | PRN |   Frequency   |  Doppler  | Code Offset | Status |')

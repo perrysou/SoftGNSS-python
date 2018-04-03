@@ -27,33 +27,31 @@ def geo2cart(phi=None, lambda_=None, h=None, i=None, *args, **kwargs):
     # Kai Borre 10-13-98
     # Copyright (c) by Kai Borre
 
-    # CVS record:
-    # $Id: geo2cart.m,v 1.1.2.7 2006/08/22 13:45:59 dpl Exp $
     # ==========================================================================
 
     b = phi[1] + phi[2] / 60 + phi[3] / 3600
-    # geo2cart.m:33
+
     b = dot(b, pi) / 180
-    # geo2cart.m:34
+
     l = lambda_[1] + lambda_[2] / 60 + lambda_[3] / 3600
-    # geo2cart.m:35
+
     l = dot(l, pi) / 180
-    # geo2cart.m:36
+
     a = matlabarray(cat(6378388, 6378160, 6378135, 6378137, 6378137))
-    # geo2cart.m:38
+
     f = matlabarray(cat(1 / 297, 1 / 298.247, 1 / 298.26, 1 / 298.257222101, 1 / 298.257223563))
-    # geo2cart.m:39
+
     ex2 = dot((2 - f[i]), f[i]) / ((1 - f[i]) ** 2)
-    # geo2cart.m:41
+
     c = dot(a[i], sqrt(1 + ex2))
-    # geo2cart.m:42
+
     N = c / sqrt(1 + dot(ex2, cos(b) ** 2))
-    # geo2cart.m:43
+
     X = dot(dot((N + h), cos(b)), cos(l))
-    # geo2cart.m:45
+
     Y = dot(dot((N + h), cos(b)), sin(l))
-    # geo2cart.m:46
+
     Z = dot((dot((1 - f[i]) ** 2, N) + h), sin(b))
-    # geo2cart.m:47
+
     return X, Y, Z
     ############## end geo2cart.m  ########################

@@ -13,7 +13,6 @@ def findUtmZone(latitude=None, longitude=None, *args, **kwargs):
     # Latitude and longitude must be in decimal degrees (e.g. 15.5 degrees not
     # 15 deg 30 min).
 
-
     ## Check value bounds =====================================================
 
     if longitude > 180 or longitude < - 180:
@@ -27,26 +26,25 @@ def findUtmZone(latitude=None, longitude=None, *args, **kwargs):
     # Start at 180 deg west = -180 deg
 
     utmZone = np.fix((180 + longitude) / 6) + 1
-    # findUtmZone.m:51
+
     ## Correct zone numbers for particular areas ==============================
 
     if latitude > 72:
         # Corrections for zones 31 33 35 37
         if 0 <= longitude < 9:
             utmZone = 31
-        # findUtmZone.m:58
+
         elif 9 <= longitude < 21:
             utmZone = 33
-            # findUtmZone.m:60
+
         elif 21 <= longitude < 33:
             utmZone = 35
-            # findUtmZone.m:62
+
         elif 33 <= longitude < 42:
             utmZone = 37
-    # findUtmZone.m:64
+
     elif 56 <= latitude < 64:
         # Correction for zone 32
         if 3 <= longitude < 12:
             utmZone = 32
     return utmZone
-# findUtmZone.m:70

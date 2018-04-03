@@ -3,11 +3,11 @@ import datetime
 import numpy as np
 
 import acquisition
-import include.preRun as preRun
 import plotAcquisition
 import plotNavigation
 import plotTracking
 import postNavigation
+import preRun
 import tracking
 
 
@@ -64,13 +64,13 @@ def postProcessing(*args, **kwargs):
         fileNameStr = settings.fileName
     elif nargin == 2:
         fileNameStr, settings = args
-        if type(fileNameStr) is not str:
+        if not isinstance(fileNameStr, str):
             raise TypeError('File name must be a string')
     else:
         raise Exception('Incorrect number of arguments')
     try:
         with open(fileNameStr, 'rb') as fid:
-            # ./postProcessing.m:60
+
             # If success, then process the data
             # Move the starting point of processing. Can be used to start the
             # signal processing at any point in the data record (e.g. good for long
@@ -82,36 +82,36 @@ def postProcessing(*args, **kwargs):
             if not settings.skipAcquisition or 'acqResults' not in globals():
                 # Find number of samples per spreading code
                 samplesPerCode = long(round(settings.samplingFreq / (settings.codeFreqBasis / settings.codeLength)))
-                # ./postProcessing.m:77
+
                 # frequency estimation
                 data = np.fromfile(fid, settings.dataType, 11 * samplesPerCode)
-                # ./postProcessing.m:82
+
                 print '   Acquiring satellites...'
                 acqResults = acquisition.acquisition(data, settings)
-                # ./postProcessing.m:86
+
                 plotAcquisition.plotAcquisition(acqResults)
             ## Initialize channels and prepare for the run ============================
             # Start further processing only if a GNSS signal was acquired (the
             # field FREQUENCY will be set to 0 for all not acquired signals)
             if np.any(acqResults.carrFreq):
                 channel = preRun.preRun(acqResults, settings)
-                # ./postProcessing.m:96
+
                 preRun.showChannelStatus(channel, settings)
             else:
                 # No satellites to track, exit
                 print 'No GNSS signals detected, signal processing finished.'
                 trackResults = None
-                # ./postProcessing.m:101
+
             ## Track the signal =======================================================
             startTime = datetime.datetime.now()
-            # ./postProcessing.m:106
+
             print '   Tracking started at %s' % startTime.strftime('%X')
             try:
                 trackResults = np.load('trackingResults_python.npy')
             except IOError:
                 trackResults, channel = tracking.tracking(fid, channel, settings)
                 np.save('trackingResults_python', trackResults)
-            # ./postProcessing.m:110
+
             print '   Tracking is over (elapsed time %s s)' % (datetime.datetime.now() - startTime).total_seconds()
             # Auto save the acquisition & tracking results to a file to allow
             # running the positioning solution afterwards.
@@ -123,7 +123,7 @@ def postProcessing(*args, **kwargs):
             except IOError:
                 navSolutions, eph = postNavigation.postNavigation(trackResults, settings)
                 np.save('navSolutions_python', navSolutions)
-            # ./postProcessing.m:126
+
             print '   Processing is complete for this data block'
             # return
             # savemat('trackingResults_from_python',
