@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import hamming, welch
+from scipy.signal import welch
+from scipy.signal.windows.windows import hamming
 
 
 # ./probeData.m
