@@ -4,7 +4,7 @@ This is a GNSS Software Defined Radio (SDR) implemented in python, based on Soft
 
 # System requirements
 
-* python 2.7/3
+* python 2.7
 * matplotlib
 * scipy
 * numpy
@@ -15,10 +15,11 @@ Coming soon!
 
 # Running the GNSS SDR
 
-1. Run init.py
-5. Run postProcessing.py
-6. Now the signal processing will start
-7. Continue from step 1 to repeat the process with a different data file.
+1. Examine "main.py"
+2. Tweak parameters for the "settings" class if necessary
+3. Specify the binary file to be processed and run "main.py"
+4. Wait until it is finished
+
 
 # Resources
 * The official homepage of the textbook

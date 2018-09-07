@@ -1,360 +1,426 @@
 import numpy as np
 
-import acquisition
+from initialize import Result
 
 
-class TrackResults(object):
-    def __init__(self, msToProcess):
-        ## Initialize result structure ============================================
-        # Channel status
-        self.status = '-'
+class TrackingResult(Result):
+    def __init__(self, acqResult):
+        self._results = None
+        self._channels = acqResult.channels
+        self._settings = acqResult.settings
 
-        # The absolute sample in the record of the C/A code start:
-        self.absoluteSample = np.zeros(msToProcess)
+    # ./tracking.m
+    def track(self, fid):
+        channel = self._channels
+        settings = self._settings
+        # Performs code and carrier tracking for all channels.
 
-        # Freq of the C/A code:
-        self.codeFreq = np.Inf * np.ones(msToProcess)
+        # [trackResults, channel] = tracking(fid, channel, settings)
 
-        # Frequency of the tracked carrier wave:
-        self.carrFreq = np.Inf * np.ones(msToProcess)
+        #   Inputs:
+        #       fid             - file identifier of the signal record.
+        #       channel         - PRN, carrier frequencies and code phases of all
+        #                       satellites to be tracked (prepared by preRum.m from
+        #                       acquisition results).
+        #       settings        - receiver settings.
+        #   Outputs:
+        #       trackResults    - tracking results (structure array). Contains
+        #                       in-phase prompt outputs and absolute starting
+        #                       positions of spreading codes, together with other
+        #                       observation data from the tracking loops. All are
+        #                       saved every millisecond.
 
-        # Outputs from the correlators (In-phase):
-        self.I_P = np.zeros(msToProcess)
+        # Initialize tracking variables ==========================================
 
-        self.I_E = np.zeros(msToProcess)
+        codePeriods = settings.msToProcess
 
-        self.I_L = np.zeros(msToProcess)
+        # --- DLL variables --------------------------------------------------------
+        # Define early-late offset (in chips)
+        earlyLateSpc = settings.dllCorrelatorSpacing
 
-        # Outputs from the correlators (Quadrature-phase):
-        self.Q_E = np.zeros(msToProcess)
+        # Summation interval
+        PDIcode = 0.001
 
-        self.Q_P = np.zeros(msToProcess)
+        # Calculate filter coefficient values
+        tau1code, tau2code = settings.calcLoopCoef(settings.dllNoiseBandwidth, settings.dllDampingRatio, 1.0)
 
-        self.Q_L = np.zeros(msToProcess)
+        # --- PLL variables --------------------------------------------------------
+        # Summation interval
+        PDIcarr = 0.001
 
-        # Loop discriminators
-        self.dllDiscr = np.Inf * np.ones(msToProcess)
+        # Calculate filter coefficient values
+        tau1carr, tau2carr = settings.calcLoopCoef(settings.pllNoiseBandwidth, settings.pllDampingRatio, 0.25)
 
-        self.dllDiscrFilt = np.Inf * np.ones(msToProcess)
+        #     hwb=waitbar(0,'Tracking...')
 
-        self.pllDiscr = np.Inf * np.ones(msToProcess)
+        # Initialize a temporary list of records
+        rec = []
+        # Start processing channels ==============================================
+        for channelNr in range(settings.numberOfChannels):
+            msToProcess = np.long(settings.msToProcess)
+            # Initialize fields for record(structured) array of tracked results
+            status = '-'
 
-        self.pllDiscrFilt = np.Inf * np.ones(msToProcess)
+            # The absolute sample in the record of the C/A code start:
+            absoluteSample = np.zeros(msToProcess)
 
-        self.PRN = 0
+            # Freq of the C/A code:
+            codeFreq_ = np.Inf * np.ones(msToProcess)
 
+            # Frequency of the tracked carrier wave:
+            carrFreq_ = np.Inf * np.ones(msToProcess)
 
-# calcLoopCoef.m
+            # Outputs from the correlators (In-phase):
+            I_P_ = np.zeros(msToProcess)
 
+            I_E_ = np.zeros(msToProcess)
 
-def calcLoopCoef(LBW, zeta, k, *args, **kwargs):
-    # Function finds loop coefficients. The coefficients are used then in PLL-s
-    # and DLL-s.
+            I_L_ = np.zeros(msToProcess)
 
-    # [tau1, tau2] = calcLoopCoef(LBW, zeta, k)
+            # Outputs from the correlators (Quadrature-phase):
+            Q_E_ = np.zeros(msToProcess)
 
-    #   Inputs:
-    #       LBW           - Loop noise bandwidth
-    #       zeta          - Damping ratio
-    #       k             - Loop gain
+            Q_P_ = np.zeros(msToProcess)
 
-    #   Outputs:
-    #       tau1, tau2   - Loop filter coefficients
+            Q_L_ = np.zeros(msToProcess)
 
-    # Solve natural frequency
-    Wn = LBW * 8.0 * zeta / (4.0 * zeta ** 2 + 1)
+            # Loop discriminators
+            dllDiscr = np.Inf * np.ones(msToProcess)
 
-    # solve for t1 & t2
-    tau1 = k / (Wn * Wn)
+            dllDiscrFilt = np.Inf * np.ones(msToProcess)
 
-    tau2 = 2.0 * zeta / Wn
+            pllDiscr = np.Inf * np.ones(msToProcess)
 
-    return tau1, tau2
+            pllDiscrFilt = np.Inf * np.ones(msToProcess)
 
+            PRN = 0
 
-# ./tracking.m
+            # Only process if PRN is non zero (acquisition was successful)
+            if channel[channelNr].PRN != 0:
+                # Save additional information - each channel's tracked PRN
+                PRN = channel[channelNr].PRN
 
+                # signal processing at any point in the data record (e.g. for long
+                # records). In addition skip through that data file to start at the
+                # appropriate sample (corresponding to code phase). Assumes sample
+                # type is schar (or 1 byte per sample)
+                fid.seek(settings.skipNumberOfBytes + channel[channelNr].codePhase, 0)
+                # Here PRN is the actual satellite ID instead of the 0-based index
+                caCode = settings.generateCAcode(channel[channelNr].PRN - 1)
 
-def tracking(fid=None, channel=None, settings=None, *args, **kwargs):
-    # Performs code and carrier tracking for all channels.
+                caCode = np.r_[caCode[-1], caCode, caCode[0]]
 
-    # [trackResults, channel] = tracking(fid, channel, settings)
+                # define initial code frequency basis of NCO
+                codeFreq = settings.codeFreqBasis
 
-    #   Inputs:
-    #       fid             - file identifier of the signal record.
-    #       channel         - PRN, carrier frequencies and code phases of all
-    #                       satellites to be tracked (prepared by preRum.m from
-    #                       acquisition results).
-    #       settings        - receiver settings.
-    #   Outputs:
-    #       trackResults    - tracking results (structure array). Contains
-    #                       in-phase prompt outputs and absolute starting
-    #                       positions of spreading codes, together with other
-    #                       observation data from the tracking loops. All are
-    #                       saved every millisecond.
+                remCodePhase = 0.0
 
-    ## Initialize tracking variables ==========================================
+                carrFreq = channel[channelNr].acquiredFreq
 
-    codePeriods = settings.msToProcess
+                carrFreqBasis = channel[channelNr].acquiredFreq
 
-    # --- DLL variables --------------------------------------------------------
-    # Define early-late offset (in chips)
-    earlyLateSpc = settings.dllCorrelatorSpacing
+                remCarrPhase = 0.0
 
-    # Summation interval
-    PDIcode = 0.001
+                oldCodeNco = 0.0
 
-    # Calculate filter coefficient values
-    tau1code, tau2code = calcLoopCoef(settings.dllNoiseBandwidth, settings.dllDampingRatio, 1.0)
+                oldCodeError = 0.0
 
-    # --- PLL variables --------------------------------------------------------
-    # Summation interval
-    PDIcarr = 0.001
+                oldCarrNco = 0.0
 
-    # Calculate filter coefficient values
-    tau1carr, tau2carr = calcLoopCoef(settings.pllNoiseBandwidth, settings.pllDampingRatio, 0.25)
+                oldCarrError = 0.0
 
-    #     hwb=waitbar(0,'Tracking...')
+                for loopCnt in range(np.long(codePeriods)):
+                    # GUI update -------------------------------------------------------------
+                    # The GUI is updated every 50ms. This way Matlab GUI is still
+                    # responsive enough. At the same time Matlab is not occupied
+                    # all the time with GUI task.
+                    if loopCnt % 50 == 0:
+                        try:
+                            print 'Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
+                                  '; PRN#%02d' % channel[channelNr].PRN + \
+                                  '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec'
+                        finally:
+                            pass
+                    # Read next block of data ------------------------------------------------
+                    # Find the size of a "block" or code period in whole samples
+                    # Update the phasestep based on code freq (variable) and
+                    # sampling frequency (fixed)
+                    codePhaseStep = codeFreq / settings.samplingFreq
 
-    # Initialize a temporary list of records
-    rec = []
-    ## Start processing channels ==============================================
-    for channelNr in range(settings.numberOfChannels):
-        settings.msToProcess = np.long(settings.msToProcess)
-        # Initialize fields for record(structured) array of tracked results
-        status = '-'
+                    blksize = np.ceil((settings.codeLength - remCodePhase) / codePhaseStep)
+                    blksize = np.long(blksize)
 
-        # The absolute sample in the record of the C/A code start:
-        absoluteSample = np.zeros(settings.msToProcess)
+                    # interaction
+                    rawSignal = np.fromfile(fid, settings.dataType, blksize)
+                    samplesRead = len(rawSignal)
 
-        # Freq of the C/A code:
-        codeFreq_ = np.Inf * np.ones(settings.msToProcess)
+                    # If did not read in enough samples, then could be out of
+                    # data - better exit
+                    if samplesRead != blksize:
+                        print 'Not able to read the specified number of samples for tracking, exiting!'
+                        fid.close()
+                        trackResults = None
+                        return trackResults
+                    # Set up all the code phase tracking information -------------------------
+                    # Define index into early code vector
+                    tcode = np.linspace(remCodePhase - earlyLateSpc,
+                                        blksize * codePhaseStep + remCodePhase - earlyLateSpc,
+                                        blksize, endpoint=False)
 
-        # Frequency of the tracked carrier wave:
-        carrFreq_ = np.Inf * np.ones(settings.msToProcess)
+                    tcode2 = np.ceil(tcode)
 
-        # Outputs from the correlators (In-phase):
-        I_P_ = np.zeros(settings.msToProcess)
+                    earlyCode = caCode[np.longlong(tcode2)]
 
-        I_E_ = np.zeros(settings.msToProcess)
+                    tcode = np.linspace(remCodePhase + earlyLateSpc,
+                                        blksize * codePhaseStep + remCodePhase + earlyLateSpc,
+                                        blksize, endpoint=False)
 
-        I_L_ = np.zeros(settings.msToProcess)
+                    tcode2 = np.ceil(tcode)
 
-        # Outputs from the correlators (Quadrature-phase):
-        Q_E_ = np.zeros(settings.msToProcess)
+                    lateCode = caCode[np.longlong(tcode2)]
 
-        Q_P_ = np.zeros(settings.msToProcess)
+                    tcode = np.linspace(remCodePhase,
+                                        blksize * codePhaseStep + remCodePhase,
+                                        blksize, endpoint=False)
 
-        Q_L_ = np.zeros(settings.msToProcess)
+                    tcode2 = np.ceil(tcode)
 
-        # Loop discriminators
-        dllDiscr = np.Inf * np.ones(settings.msToProcess)
+                    promptCode = caCode[np.longlong(tcode2)]
 
-        dllDiscrFilt = np.Inf * np.ones(settings.msToProcess)
+                    remCodePhase = tcode[blksize - 1] + codePhaseStep - 1023.0
 
-        pllDiscr = np.Inf * np.ones(settings.msToProcess)
+                    # Generate the carrier frequency to mix the signal to baseband -----------
+                    time = np.arange(0, blksize + 1) / settings.samplingFreq
 
-        pllDiscrFilt = np.Inf * np.ones(settings.msToProcess)
+                    trigarg = carrFreq * 2.0 * np.pi * time + remCarrPhase
 
-        PRN = 0
+                    remCarrPhase = trigarg[blksize] % (2 * np.pi)
 
-        settings.msToProcess = np.longfloat(settings.msToProcess)
-        # Only process if PRN is non zero (acquisition was successful)
-        if channel[channelNr].PRN != 0:
-            # Save additional information - each channel's tracked PRN
-            PRN = channel[channelNr].PRN
+                    carrCos = np.cos(trigarg[0:blksize])
 
-            # signal processing at any point in the data record (e.g. for long
-            # records). In addition skip through that data file to start at the
-            # appropriate sample (corresponding to code phase). Assumes sample
-            # type is schar (or 1 byte per sample)
-            fid.seek(settings.skipNumberOfBytes + channel[channelNr].codePhase, 0)
-            # Here PRN is the actual satellite ID instead of the 0-based index
-            caCode = acquisition.generateCAcode(channel[channelNr].PRN - 1)
+                    carrSin = np.sin(trigarg[0:blksize])
 
-            caCode = np.r_[caCode[-1], caCode, caCode[0]]
+                    # Generate the six standard accumulated values ---------------------------
+                    # First mix to baseband
+                    qBasebandSignal = carrCos * rawSignal
 
-            # define initial code frequency basis of NCO
-            codeFreq = settings.codeFreqBasis
+                    iBasebandSignal = carrSin * rawSignal
 
-            remCodePhase = 0.0
+                    I_E = (earlyCode * iBasebandSignal).sum()
 
-            carrFreq = channel[channelNr].acquiredFreq
+                    Q_E = (earlyCode * qBasebandSignal).sum()
 
-            carrFreqBasis = channel[channelNr].acquiredFreq
+                    I_P = (promptCode * iBasebandSignal).sum()
 
-            remCarrPhase = 0.0
+                    Q_P = (promptCode * qBasebandSignal).sum()
 
-            oldCodeNco = 0.0
+                    I_L = (lateCode * iBasebandSignal).sum()
 
-            oldCodeError = 0.0
+                    Q_L = (lateCode * qBasebandSignal).sum()
 
-            oldCarrNco = 0.0
+                    # Find PLL error and update carrier NCO ----------------------------------
+                    # Implement carrier loop discriminator (phase detector)
+                    carrError = np.arctan(Q_P / I_P) / 2.0 / np.pi
 
-            oldCarrError = 0.0
+                    carrNco = oldCarrNco + \
+                              tau2carr / tau1carr * (carrError - oldCarrError) + \
+                              carrError * (PDIcarr / tau1carr)
 
-            for loopCnt in range(np.long(codePeriods)):
-                ## GUI update -------------------------------------------------------------
-                # The GUI is updated every 50ms. This way Matlab GUI is still
-                # responsive enough. At the same time Matlab is not occupied
-                # all the time with GUI task.
-                if loopCnt % 50 == 0:
-                    try:
-                        print 'Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
-                              '; PRN#%02d' % channel[channelNr].PRN + \
-                              '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec'
-                    finally:
-                        pass
-                ## Read next block of data ------------------------------------------------            
-                # Find the size of a "block" or code period in whole samples
-                # Update the phasestep based on code freq (variable) and
-                # sampling frequency (fixed)
-                codePhaseStep = codeFreq / settings.samplingFreq
+                    oldCarrNco = carrNco
 
-                blksize = np.ceil((settings.codeLength - remCodePhase) / codePhaseStep)
-                blksize = np.long(blksize)
+                    oldCarrError = carrError
 
-                # interation
-                rawSignal = np.fromfile(fid, settings.dataType, blksize)
-                samplesRead = len(rawSignal)
+                    carrFreq = carrFreqBasis + carrNco
 
-                # If did not read in enough samples, then could be out of
-                # data - better exit
-                if samplesRead != blksize:
-                    print 'Not able to read the specified number of samples for tracking, exiting!'
-                    fid.close()
-                    trackResults = None
-                    return trackResults, channel
-                ## Set up all the code phase tracking information -------------------------
-                # Define index into early code vector
-                tcode = np.linspace(remCodePhase - earlyLateSpc,
-                                    blksize * codePhaseStep + remCodePhase - earlyLateSpc,
-                                    blksize, endpoint=False)
+                    carrFreq_[loopCnt] = carrFreq
 
-                tcode2 = np.ceil(tcode)
+                    # Find DLL error and update code NCO -------------------------------------
+                    codeError = (np.sqrt(I_E * I_E + Q_E * Q_E) - np.sqrt(I_L * I_L + Q_L * Q_L)) / (
+                            np.sqrt(I_E * I_E + Q_E * Q_E) + np.sqrt(I_L * I_L + Q_L * Q_L))
 
-                earlyCode = caCode[np.longlong(tcode2)]
+                    codeNco = oldCodeNco + \
+                              tau2code / tau1code * (codeError - oldCodeError) + \
+                              codeError * (PDIcode / tau1code)
 
-                tcode = np.linspace(remCodePhase + earlyLateSpc,
-                                    blksize * codePhaseStep + remCodePhase + earlyLateSpc,
-                                    blksize, endpoint=False)
+                    oldCodeNco = codeNco
 
-                tcode2 = np.ceil(tcode)
+                    oldCodeError = codeError
 
-                lateCode = caCode[np.longlong(tcode2)]
+                    codeFreq = settings.codeFreqBasis - codeNco
 
-                tcode = np.linspace(remCodePhase,
-                                    blksize * codePhaseStep + remCodePhase,
-                                    blksize, endpoint=False)
+                    codeFreq_[loopCnt] = codeFreq
 
-                tcode2 = np.ceil(tcode)
+                    # Record various measures to show in postprocessing ----------------------
+                    # Record sample number (based on 8bit samples)
+                    absoluteSample[loopCnt] = fid.tell()
 
-                promptCode = caCode[np.longlong(tcode2)]
+                    dllDiscr[loopCnt] = codeError
 
-                remCodePhase = tcode[blksize - 1] + codePhaseStep - 1023.0
+                    dllDiscrFilt[loopCnt] = codeNco
 
-                ## Generate the carrier frequency to mix the signal to baseband -----------
-                time = np.arange(0, blksize + 1) / settings.samplingFreq
+                    pllDiscr[loopCnt] = carrError
 
-                trigarg = carrFreq * 2.0 * np.pi * time + remCarrPhase
+                    pllDiscrFilt[loopCnt] = carrNco
 
-                remCarrPhase = trigarg[blksize] % (2 * np.pi)
+                    I_E_[loopCnt] = I_E
 
-                carrCos = np.cos(trigarg[0:blksize])
+                    I_P_[loopCnt] = I_P
 
-                carrSin = np.sin(trigarg[0:blksize])
+                    I_L_[loopCnt] = I_L
 
-                ## Generate the six standard accumulated values ---------------------------
-                # First mix to baseband
-                qBasebandSignal = carrCos * rawSignal
+                    Q_E_[loopCnt] = Q_E
 
-                iBasebandSignal = carrSin * rawSignal
+                    Q_P_[loopCnt] = Q_P
 
-                I_E = (earlyCode * iBasebandSignal).sum()
+                    Q_L_[loopCnt] = Q_L
 
-                Q_E = (earlyCode * qBasebandSignal).sum()
+                # If we got so far, this means that the tracking was successful
+                # Now we only copy status, but it can be update by a lock detector
+                # if implemented
+                status = channel[channelNr].status
+                rec.append((status, absoluteSample, codeFreq_, carrFreq_,
+                            I_P_, I_E_, I_L_, Q_E_, Q_P_, Q_L_,
+                            dllDiscr, dllDiscrFilt, pllDiscr, pllDiscrFilt, PRN))
 
-                I_P = (promptCode * iBasebandSignal).sum()
+        trackResults = np.rec.fromrecords(rec,
+                                          dtype=[('status', 'S1'), ('absoluteSample', 'object'), ('codeFreq', 'object'),
+                                                 ('carrFreq', 'object'), ('I_P', 'object'), ('I_E', 'object'),
+                                                 ('I_L', 'object'),
+                                                 ('Q_E', 'object'), ('Q_P', 'object'), ('Q_L', 'object'),
+                                                 ('dllDiscr', 'object'),
+                                                 ('dllDiscrFilt', 'object'), ('pllDiscr', 'object'),
+                                                 ('pllDiscrFilt', 'object'),
+                                                 ('PRN', 'int64')])
+        self._results = trackResults
+        return
 
-                Q_P = (promptCode * qBasebandSignal).sum()
+    def plot(self):
+        import matplotlib as mpl
 
-                I_L = (lateCode * iBasebandSignal).sum()
+        # %% configure matplotlib
+        mpl.rcdefaults()
+        # mpl.rcParams['font.sans-serif']
+        # mpl.rcParams['font.family'] = 'serif'
+        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        mpl.rc('figure', figsize=[8, 6], dpi=120)
+        mpl.rc('text', usetex=True)
+        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        mpl.rc('mathtext', fontset='cm')
 
-                Q_L = (lateCode * qBasebandSignal).sum()
+        # mpl.rc('font', size=16)
+        # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
 
-                ## Find PLL error and update carrier NCO ----------------------------------
-                # Implement carrier loop discriminator (phase detector)
-                carrError = np.arctan(Q_P / I_P) / 2.0 / np.pi
+        # ./plotTracking.m
 
-                carrNco = oldCarrNco + \
-                          tau2carr / tau1carr * (carrError - oldCarrError) + \
-                          carrError * (PDIcarr / tau1carr)
+        trackResults = self._results
+        settings = self._settings
+        channelList = range(settings.numberOfChannels)
 
-                oldCarrNco = carrNco
+        import matplotlib as mpl
+        import matplotlib.gridspec as gs
+        import matplotlib.pyplot as plt
 
-                oldCarrError = carrError
+        # %% configure matplotlib
+        mpl.rcdefaults()
+        # mpl.rcParams['font.sans-serif']
+        # mpl.rcParams['font.family'] = 'serif'
+        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        mpl.rc('figure', figsize=[8, 6], dpi=120)
+        mpl.rc('text', usetex=True)
+        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        mpl.rc('mathtext', fontset='cm')
 
-                carrFreq = carrFreqBasis + carrNco
+        # mpl.rc('font', size=16)
+        # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
 
-                carrFreq_[loopCnt] = carrFreq
+        # ./plotTracking.m
 
-                ## Find DLL error and update code NCO -------------------------------------
-                codeError = (np.sqrt(I_E * I_E + Q_E * Q_E) - np.sqrt(I_L * I_L + Q_L * Q_L)) / (
-                        np.sqrt(I_E * I_E + Q_E * Q_E) + np.sqrt(I_L * I_L + Q_L * Q_L))
+        # This function plots the tracking results for the given channel list.
 
-                codeNco = oldCodeNco + \
-                          tau2code / tau1code * (codeError - oldCodeError) + \
-                          codeError * (PDIcode / tau1code)
+        # plotTracking(channelList, trackResults, settings)
 
-                oldCodeNco = codeNco
+        #   Inputs:
+        #       channelList     - list of channels to be plotted.
+        #       trackResults    - tracking results from the tracking function.
+        #       settings        - receiver settings.
 
-                oldCodeError = codeError
+        # Protection - if the list contains incorrect channel numbers
+        channelList = np.intersect1d(channelList, range(settings.numberOfChannels))
 
-                codeFreq = settings.codeFreqBasis - codeNco
+        # === For all listed channels ==============================================
+        for channelNr in channelList:
+            # Select (or create) and clear the figure ================================
+            # The number 200 is added just for more convenient handling of the open
+            # figure windows, when many figures are closed and reopened.
+            # Figures drawn or opened by the user, will not be "overwritten" by
+            # this function.
+            f = plt.figure(channelNr + 200)
+            f.set_label('Channel ' + str(channelNr) +
+                        ' (PRN ' + str(trackResults[channelNr].PRN) + ') results')
+            # Draw axes ==============================================================
+            # Row 1
+            spec = gs.GridSpec(3, 3)
+            h11 = plt.subplot(spec[0, 0])
 
-                codeFreq_[loopCnt] = codeFreq
+            h12 = plt.subplot(spec[0, 1:])
 
-                ## Record various measures to show in postprocessing ----------------------
-                # Record sample number (based on 8bit samples)
-                absoluteSample[loopCnt] = fid.tell()
+            h21 = plt.subplot(spec[1, 0])
 
-                dllDiscr[loopCnt] = codeError
+            h22 = plt.subplot(spec[1, 1:])
 
-                dllDiscrFilt[loopCnt] = codeNco
+            h31 = plt.subplot(spec[2, 0])
 
-                pllDiscr[loopCnt] = carrError
+            h32 = plt.subplot(spec[2, 1])
 
-                pllDiscrFilt[loopCnt] = carrNco
+            h33 = plt.subplot(spec[2, 2])
 
-                I_E_[loopCnt] = I_E
+            # Plot all figures =======================================================
+            timeAxisInSeconds = np.arange(settings.msToProcess) / 1000.0
 
-                I_P_[loopCnt] = I_P
+            h11.plot(trackResults[channelNr].I_P, trackResults[channelNr].Q_P, '.')
+            h11.grid()
+            h11.axis('equal')
+            h11.set(title='Discrete-Time Scatter Plot', xlabel='I prompt', ylabel='Q prompt')
+            h12.plot(timeAxisInSeconds, trackResults[channelNr].I_P)
+            h12.grid()
+            h12.set(title='Bits of the navigation message', xlabel='Time (s)')
+            h12.axis('tight')
+            h21.plot(timeAxisInSeconds, trackResults[channelNr].pllDiscr, 'r')
+            h21.grid()
+            h21.axis('tight')
+            h21.set(xlabel='Time (s)', ylabel='Amplitude', title='Raw PLL discriminator')
+            h22.plot(timeAxisInSeconds,
+                     np.sqrt(trackResults[channelNr].I_E ** 2 + trackResults[channelNr].Q_E ** 2).T,
+                     timeAxisInSeconds,
+                     np.sqrt(trackResults[channelNr].I_P ** 2 + trackResults[channelNr].Q_P ** 2).T,
+                     timeAxisInSeconds,
+                     np.sqrt(trackResults[channelNr].I_L ** 2 + trackResults[channelNr].Q_L ** 2).T, '-*')
+            h22.grid()
+            h22.set(title='Correlation results', xlabel='Time (s)')
+            h22.axis('tight')
+            h22.legend(['$\sqrt{I_{E}^2 + Q_{E}^2}$', '$\sqrt{I_{P}^2 + Q_{P}^2}$',
+                        '$\sqrt{I_{L}^2 + Q_{L}^2}$'])
 
-                I_L_[loopCnt] = I_L
-
-                Q_E_[loopCnt] = Q_E
-
-                Q_P_[loopCnt] = Q_P
-
-                Q_L_[loopCnt] = Q_L
-
-            # If we got so far, this means that the tracking was successful
-            # Now we only copy status, but it can be update by a lock detector
-            # if implemented
-            status = channel[channelNr].status
-            rec.append((status, absoluteSample, codeFreq_, carrFreq_,
-                        I_P_, I_E_, I_L_, Q_E_, Q_P_, Q_L_,
-                        dllDiscr, dllDiscrFilt, pllDiscr, pllDiscrFilt, PRN))
-
-    # Close the waitbar
-    # close_(hwb)
-    trackResults = np.rec.fromrecords(rec,
-                                      dtype=[('status', 'S1'), ('absoluteSample', 'object'), ('codeFreq', 'object'),
-                                             ('carrFreq', 'object'), ('I_P', 'object'), ('I_E', 'object'),
-                                             ('I_L', 'object'),
-                                             ('Q_E', 'object'), ('Q_P', 'object'), ('Q_L', 'object'),
-                                             ('dllDiscr', 'object'),
-                                             ('dllDiscrFilt', 'object'), ('pllDiscr', 'object'),
-                                             ('pllDiscrFilt', 'object'),
-                                             ('PRN', 'int64')])
-    return trackResults, channel
+            h31.plot(timeAxisInSeconds, trackResults[channelNr].pllDiscrFilt, 'b')
+            h31.grid()
+            h31.axis('tight')
+            h31.set(xlabel='Time (s)',
+                    ylabel='Amplitude',
+                    title='Filtered PLL discriminator')
+            h32.plot(timeAxisInSeconds, trackResults[channelNr].dllDiscr, 'r')
+            h32.grid()
+            h32.axis('tight')
+            h32.set(xlabel='Time (s)',
+                    ylabel='Amplitude',
+                    title='Raw DLL discriminator')
+            h33.plot(timeAxisInSeconds, trackResults[channelNr].dllDiscrFilt, 'b')
+            h33.grid()
+            h33.axis('tight')
+            h33.set(xlabel='Time (s)',
+                    ylabel='Amplitude',
+                    title='Filtered DLL discriminator')
+            f.show()

@@ -1,5 +1,4 @@
-import initSettings
-import postProcessing
+import initialize
 
 # ./init.m
 
@@ -31,7 +30,7 @@ import postProcessing
 # --------------------------------------------------------------------------
 
 
-## Clean up the environment first =========================================
+# Clean up the environment first =========================================
 # clear
 # close_('all')
 # clc
@@ -40,7 +39,7 @@ import postProcessing
 # --- Include folders with functions ---------------------------------------
 # addpath('include')
 # addpath('geoFunctions')
-## Print startup ==========================================================
+# Print startup ==========================================================
 print '\n', \
     'Welcome to:  softGNSS\n\n', \
     'An open source GNSS SDR software project initiated by:\n\n', \
@@ -51,23 +50,23 @@ print '\n', \
     'is free software, and  you  are  welcome  to  redistribute  it under\n', \
     'the terms described in the license.\n\n', \
     '                   -------------------------------\n\n'
-## Initialize constants, settings =========================================
-settings = initSettings.Settings()
+# Initialize settings class=========================================
+settings = initialize.Settings()
 
-## Generate plot of raw data and ask if ready to start processing =========
+# Generate plot of raw data and ask if ready to start processing =========
 try:
     print 'Probing data "%s"...' % settings.fileName
-    # probeData.probeData(settings)
-    # probeData.probeData('/Users/yangsu/Downloads/GNSS_signal_records/GPS_and_GIOVE_A-NN-fs16_3676-if4_1304.bin', settings)
+    settings.probeData()
+    settings.probeData('/Users/yangsu/Downloads/GNSS_signal_records/GPS_and_GIOVE_A-NN-fs16_3676-if4_1304.bin')
 finally:
     pass
 
 print '  Raw IF data plotted '
-print '  (run setSettings or change settings in "initSettings.m" to reconfigure)'
+print '  (run setSettings or change settings in "initialize.py" to reconfigure)'
 print ' '
 gnssStart = True
 # gnssStart = int(raw_input('Enter "1" to initiate GNSS processing or "0" to exit : ').strip())
 
 if gnssStart:
     print ' '
-    postProcessing.postProcessing(settings)
+    settings.postProcessing()

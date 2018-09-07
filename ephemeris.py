@@ -1,13 +1,10 @@
-def bin2dec(binaryStr=None):
-    if not isinstance(binaryStr, str):
-        raise IOError('Input must be a string.')
+def bin2dec(binaryStr):
+    assert isinstance(binaryStr, str)
     return int(binaryStr, 2)
 
 
 # twosComp2dec.m
-
-
-def twosComp2dec(binaryNumber=None, *args, **kwargs):
+def twosComp2dec(binaryStr):
     # TWOSCOMP2DEC(binaryNumber) Converts a two's-complement binary number
     # BINNUMBER (in Matlab it is a string type), represented as a row vector of
     # zeros and ones, to an integer.
@@ -15,22 +12,22 @@ def twosComp2dec(binaryNumber=None, *args, **kwargs):
     # intNumber = twosComp2dec(binaryNumber)
 
     # --- Check if the input is string -----------------------------------------
-    if not isinstance(binaryNumber, str):
+    if not isinstance(binaryStr, str):
         raise IOError('Input must be a string.')
 
     # --- Convert from binary form to a decimal number -------------------------
-    intNumber = int(binaryNumber, 2)
+    intNumber = int(binaryStr, 2)
 
     # --- If the number was negative, then correct the result ------------------
-    if binaryNumber[0] == '1':
-        intNumber -= 2 ** len(binaryNumber)
+    if binaryStr[0] == '1':
+        intNumber -= 2 ** len(binaryStr)
     return intNumber
 
 
 # checkPhase.m
 
 
-def checkPhase(word=None, D30Star=None, *args, **kwargs):
+def checkPhase(word, d30star):
     # Checks the parity of the supplied 30bit word.
     # The last parity bit of the previous word is used for the calculation.
     # A note on the procedure is supplied by the GPS standard positioning
@@ -49,7 +46,7 @@ def checkPhase(word=None, D30Star=None, *args, **kwargs):
     #                   (character array).
 
     word_new = []
-    if D30Star == '1':
+    if d30star == '1':
         # Data bits must be inverted
         for i in range(0, 24):
             if word[i] == '1':
@@ -60,9 +57,7 @@ def checkPhase(word=None, D30Star=None, *args, **kwargs):
 
 
 # ephemeris.m
-
-
-def ephemeris(bits=None, D30Star=None, *args, **kwargs):
+def ephemeris(bits, d30star):
     # Function decodes ephemerides and TOW from the given bit stream. The stream
     # (array) in the parameter BITS must contain 1500 bits. The first element in
     # the array must be the first bit of a subframe. The subframe ID of the
@@ -85,29 +80,29 @@ def ephemeris(bits=None, D30Star=None, *args, **kwargs):
     #                   stream (in seconds)
     #       eph         - SV ephemeris
 
-    ## Check if there is enough data ==========================================
+    # Check if there is enough data ==========================================
     if len(bits) < 1500:
         raise TypeError('The parameter BITS must contain 1500 bits!')
 
-    ## Check if the parameters are strings ====================================
+    # Check if the parameters are strings ====================================
     if any([not isinstance(x, str) for x in bits]):
         raise TypeError('The parameter BITS must be a character array!')
 
-    if not isinstance(D30Star, str):
+    if not isinstance(d30star, str):
         raise TypeError('The parameter D30Star must be a char!')
 
     # Pi used in the GPS coordinate system
     gpsPi = 3.1415926535898
 
-    ## Decode all 5 sub-frames ================================================
+    # Decode all 5 sub-frames ================================================
     for i in range(5):
         # --- "Cut" one sub-frame's bits ---------------------------------------
         subframe = bits[300 * i:300 * (i + 1)]
 
         for j in range(10):
-            subframe[30 * j: 30 * (j + 1)] = checkPhase(subframe[30 * j: 30 * (j + 1)], D30Star)
+            subframe[30 * j: 30 * (j + 1)] = checkPhase(subframe[30 * j: 30 * (j + 1)], d30star)
 
-            D30Star = subframe[30 * (j + 1) - 1]
+            d30star = subframe[30 * (j + 1) - 1]
 
         # --- Decode the sub-frame id ------------------------------------------
         # For more details on sub-frame contents please refer to GPS IS.
@@ -188,14 +183,13 @@ def ephemeris(bits=None, D30Star=None, *args, **kwargs):
             # Not decoded at the moment.
             pass
 
-    ## Compute the time of week (TOW) of the first sub-frames in the array ====
+    # Compute the time of week (TOW) of the first sub-frames in the array ====
     # Also correct the TOW. The transmitted TOW is actual TOW of the next
     # subframe and we need the TOW of the first subframe in this data block
     # (the variable subframe at this point contains bits of the last subframe).
     TOW = bin2dec(subframe[30:47]) * 6 - 30
     # Initialize fields for ephemeris
-    eph = (
-        weekNumber, accuracy, health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0, IODE_sf2, C_rs, deltan, M_0, C_uc, e, C_us,
-        sqrtA,
-        t_oe, C_ic, omega_0, C_is, i_0, C_rc, omega, omegaDot, IODE_sf3, iDot)
+    eph = (weekNumber, accuracy, health, T_GD, IODC, t_oc, a_f2, a_f1, a_f0,
+           IODE_sf2, C_rs, deltan, M_0, C_uc, e, C_us, sqrtA, t_oe,
+           C_ic, omega_0, C_is, i_0, C_rc, omega, omegaDot, IODE_sf3, iDot)
     return eph, TOW
