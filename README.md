@@ -23,4 +23,9 @@ Coming soon!
 
 # Resources
 * The official homepage of the textbook
+
+# Updates
+* I/Q file support added
+* fileType added to settings, byte(schar), single(float) supported
+* little bug solved
  

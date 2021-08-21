@@ -57,7 +57,7 @@ settings = initialize.Settings()
 try:
     print 'Probing data "%s"...' % settings.fileName
     settings.probeData()
-    settings.probeData('/Users/yangsu/Downloads/GNSS_signal_records/GPS_and_GIOVE_A-NN-fs16_3676-if4_1304.bin')
+    #settings.probeData('/Users/yangsu/Downloads/GNSS_signal_records/GPS_and_GIOVE_A-NN-fs16_3676-if4_1304.bin')
 finally:
     pass
 
