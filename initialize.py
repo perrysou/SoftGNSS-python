@@ -85,7 +85,7 @@ class Settings(object):
         self.msToProcess = 10000.0
 
         # Number of channels to be used for signal processing
-        self.numberOfChannels = 4
+        self.numberOfChannels = 2
 
         # Move the starting point of processing. Can be used to start the signal
         # processing at any point in the data record (e.g. for long records). fseek
@@ -103,15 +103,15 @@ class Settings(object):
         # Raw signal file name and other parameter ===============================
         # This is a "default" name of the data file (signal record) to be used in
         # the post-processing mode
-        self.fileName = './test.bin'
+        self.fileName = 'test.bin'
 
         # Data type used to store one sample
-        self.dataType = 'byte'
+        self.dataType = 'float32'
 
         # Intermediate, sampling and code frequencies
-        self.IF = 0.0
+        self.IF = 0
 
-        self.samplingFreq = 3e6
+        self.samplingFreq = 2.6e6
 
         self.codeFreqBasis = 1.023e6
 
@@ -130,7 +130,7 @@ class Settings(object):
         self.acqSearchBand = 20.0   #(KHz)
 
         # Threshold for the signal presence decision rule
-        self.acqThreshold = 2
+        self.acqThreshold = 1.4
 
         # Tracking loops settings ================================================
         # Code tracking loop parameters
@@ -369,7 +369,7 @@ class Settings(object):
                 # Move the starting point of processing. Can be used to start the
                 # signal processing at any point in the data record (e.g. for long
                 # records).
-                fid.seek(settings.skipNumberOfBytes, 0)
+                fid.seek(int(settings.skipNumberOfBytes), 0)
                 samplesPerCode = settings.samplesPerCode
 
                 if self.fileType==1:
@@ -395,7 +395,7 @@ class Settings(object):
 
                 except IOError:
                     # The file is too short
-                    print 'Could not read enough data from the data file.'
+                    print('Could not read enough data from the data file.')
                 # --- Initialization ---------------------------------------------------
                 plt.figure(100)
                 plt.clf()
@@ -478,11 +478,9 @@ class Settings(object):
                     plt.xlabel('Frequency (MHz)')
                     plt.ylabel('Magnitude')
                     plt.show()
-
-                
             # === Error while opening the data file ================================
-        except IOError as e:
-            print 'Unable to read file "%s": %s' % (fileNameStr, e)
+        except:
+            print("unable to read file")
 
     # ./postProcessing.m
 
@@ -524,7 +522,7 @@ class Settings(object):
         import acquisition
         import postNavigation
         import tracking
-        print 'Starting processing...'
+        print('Starting processing...')
         settings = self
         if not fileNameStr:
             fileNameStr = settings.fileName
@@ -537,7 +535,7 @@ class Settings(object):
                 # Move the starting point of processing. Can be used to start the
                 # signal processing at any point in the data record (e.g. good for long
                 # records or for signal processing in blocks).
-                fid.seek(settings.skipNumberOfBytes, 0)
+                fid.seek(int(settings.skipNumberOfBytes), 0)
                 
                 # Acquisition ============================================================
                 # Do acquisition if it is not disabled in settings or if the variable
@@ -565,7 +563,7 @@ class Settings(object):
                         data=data2
 
 
-                    print '   Acquiring satellites...'
+                    #print'   Acquiring satellites...'
                     acqResults = acquisition.AcquisitionResult(settings)
                     acqResults.acquire(data)
                     #acqResults.plot()
@@ -577,42 +575,42 @@ class Settings(object):
                     acqResults.showChannelStatus()
                 else:
                     # No satellites to track, exit
-                    print 'No GNSS signals detected, signal processing finished.'
+                    #print'No GNSS signals detected, signal processing finished.'
                     trackResults = None
                 acqResults.plot()
 
-                raw_input("Press Enter to continue...")
+                print("Press Enter to continue...")
                 # Track the signal =======================================================
                 startTime = datetime.datetime.now()
 
-                print '   Tracking started at %s' % startTime.strftime('%X')
+                #print'   Tracking started at %s' % startTime.strftime('%X')
                 trackResults = tracking.TrackingResult(acqResults)
                 trackResults.track(fid)
                 trackResults.plot()
                 try:
                     trackResults.results = np.load('trackingResults_python.npy')
 
-                except IOError:
+                except :
                     trackResults.track(fid)
                     np.save('trackingResults_python', trackResults.results)
 
-                print '   Tracking is over (elapsed time %s s)' % (datetime.datetime.now() - startTime).total_seconds()
+                #print'   Tracking is over (elapsed time %s s)' % (datetime.datetime.now() - startTime).total_seconds()
                 # Auto save the acquisition & tracking results to save time.
-                print '   Saving Acquisition & Tracking results to storage'
-                raw_input("Press Enter to continue...")
+                #print'   Saving Acquisition & Tracking results to storage'
+                input("Press Enter to continue...")
                 # Calculate navigation solutions =========================================
-                print '   Calculating navigation solutions...'
+                #print'   Calculating navigation solutions...'
                 navResults = postNavigation.NavigationResult(trackResults)
                 navResults.postNavigate()
 
-                print '   Processing is complete for this data block'
+                #print'   Processing is complete for this data block'
                 # Plot all results ===================================================
-                print '   Plotting results...'
+                #print'   Plotting results...'
                 # TODO turn off tracking plots for now
                 if not settings.plotTracking:
                     trackResults.plot()
                 navResults.plot()
-                print 'Post processing of the signal is over.'
+                #print'Post processing of the signal is over.'
         except IOError as e:
             # Error while opening the data file.
-            print 'Unable to read file "%s": %s.' % (settings.fileName, e)
+            print('Unable to read file "%s": %s.' % (settings.fileName, e))

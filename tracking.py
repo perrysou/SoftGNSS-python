@@ -105,7 +105,7 @@ class TrackingResult(Result):
 
             # Only process if PRN is non zero (acquisition was successful)
             if channel[channelNr].PRN != 0:
-                print ' starting to trackc PRN: %2d' %channel[channelNr].PRN
+                #print' starting to trackc PRN: %2d' %channel[channelNr].PRN
                 # Save additional information - each channel's tracked PRN
                 PRN = channel[channelNr].PRN
 
@@ -116,12 +116,13 @@ class TrackingResult(Result):
                 # appropriate sample (corresponding to code phase). Assumes sample
                 # type is schar (or 1 byte per sample)
 
-                #if settings.dataType=='float':
+                sbCoeff=np.dtype(settings.dataType).itemsize
+                # if settings.dataType=='float32':
                 #    sbCoeff=4
-                if settings.dataType=='single':
-                    sbCoeff=4
-                if settings.dataType=='byte':
-                    sbCoeff=1
+                # if settings.dataType=='single':
+                #     sbCoeff=4
+                # if settings.dataType=='byte':
+                #     sbCoeff=1
                 #if settings.dataType=='float':
                 #    sbCoeff=4
                 #if settings.dataType=='float':
@@ -129,7 +130,7 @@ class TrackingResult(Result):
                 #if settings.dataType=='float':
                 #    sbCoeff=4
 
-                fid.seek(np.round(sbCoeff*dataAdaptCoeff*(settings.skipNumberOfSamples + channel[channelNr].codePhase)), 0)
+                fid.seek(int(np.round(sbCoeff*dataAdaptCoeff*(settings.skipNumberOfSamples + channel[channelNr].codePhase))), 0)
                 # Here PRN is the actual satellite ID instead of the 0-based index
                 caCode = settings.generateCAcode(channel[channelNr].PRN-1)
 
@@ -163,9 +164,9 @@ class TrackingResult(Result):
                     # all the time with GUI task.
                     if loopCnt % 50 == 0:
                         try:
-                            print 'Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
+                            print('Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
                                   '; PRN#%02d' % channel[channelNr].PRN + \
-                                  '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec'
+                                  '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec')
                         finally:
                             pass
                     # Read next block of data ------------------------------------------------
@@ -193,7 +194,7 @@ class TrackingResult(Result):
                     # If did not read in enough samples, then could be out of
                     # data - better exit
                     if samplesRead != dataAdaptCoeff*blksize:
-                        print 'Not able to read the specified number of samples for tracking, exiting!'
+                        print('Not able to read the specified number of samples for tracking, exiting!')
                         fid.close()
                         trackResults = None
                         return trackResults
@@ -325,7 +326,7 @@ class TrackingResult(Result):
                 rec.append((status, absoluteSample, codeFreq_, carrFreq_,
                             I_P_, I_E_, I_L_, Q_E_, Q_P_, Q_L_,
                             dllDiscr, dllDiscrFilt, pllDiscr, pllDiscrFilt, PRN))
-                #print 'tracked a signal %2d' %np.size(rec)
+                ##print'tracked a signal %2d' %np.size(rec)
 
         trackResults = np.rec.fromrecords(rec,
                                           dtype=[('status', 'S1'), ('absoluteSample', 'object'), ('codeFreq', 'object'),
@@ -343,16 +344,16 @@ class TrackingResult(Result):
         import matplotlib as mpl
 
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -369,16 +370,16 @@ class TrackingResult(Result):
         import matplotlib.pyplot as plt
 
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -404,7 +405,7 @@ class TrackingResult(Result):
             # figure windows, when many figures are closed and reopened.
             # Figures drawn or opened by the user, will not be "overwritten" by
             # this function.
-            print ' %2d' %np.size(trackResults)
+            print(' %2d' %np.size(trackResults))
 
             f = plt.figure(channelNr + 200)
             f.set_label('Channel ' + str(channelNr) +

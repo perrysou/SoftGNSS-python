@@ -87,7 +87,7 @@ class AcquisitionResult(Result):
         # Correlation peak ratios of the detected signals
         peakMetric = np.zeros(32)
 
-        print '('
+        print('(')
         # Perform search for all listed PRN numbers ...
         for PRN in range(len(settings.acqSatelliteList)):
             # Correlate signals ======================================================
@@ -146,7 +146,7 @@ class AcquisitionResult(Result):
             peakSize = results.max(0).max()
             codePhase = results.max(0).argmax()
 
-            samplesPerCodeChip = long(round(settings.samplingFreq / settings.codeFreqBasis))
+            samplesPerCodeChip = int(round(settings.samplingFreq / settings.codeFreqBasis))
 
             excludeRangeIndex1 = codePhase - samplesPerCodeChip
 
@@ -170,7 +170,7 @@ class AcquisitionResult(Result):
             if (peakSize / secondPeakSize) > settings.acqThreshold:
                 # Fine resolution frequency search =======================================
                 # --- Indicate PRN number of the detected signal -------------------
-                print '%02d ' % (PRN + 1)
+                print('%02d ' % (PRN + 1))
                 caCode = settings.generateCAcode(PRN)
 
                 codeValueIndex = np.floor(ts * np.arange(1, 10 * samplesPerCode + 1) / (1.0 / settings.codeFreqBasis))
@@ -195,7 +195,7 @@ class AcquisitionResult(Result):
 
                 fftFreqBins = np.arange(uniqFftPts) * settings.samplingFreq / fftNumPts
 
-                print 'fftxcsize: %4d' %np.size(fftxc)
+                print('fftxcsize: %4d' %np.size(fftxc))
                 if fftMaxIndex>uniqFftPts:
                     if fftNumPts%2==0:
                         fftFreqBinsRev=-fftFreqBins[(uniqFftPts-2):0:-1]
@@ -216,10 +216,10 @@ class AcquisitionResult(Result):
 
             else:
                 # --- No signal with this PRN --------------------------------------
-                print '. '
+                print('. ')
 
         # === Acquisition is over ==================================================
-        print ')\n'
+        print(')\n')
         acqResults = np.core.records.fromarrays([carrFreq, codePhase_, peakMetric],
                                                 names='carrFreq,codePhase,peakMetric')
         self._results = acqResults
@@ -231,17 +231,18 @@ class AcquisitionResult(Result):
         import matplotlib.pyplot as plt
         # from scipy.io.matlab import loadmat
 
+        print("start to plot acqusition")
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], autolayout=False, dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=16)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], autolayout=False, dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=16)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -340,22 +341,22 @@ class AcquisitionResult(Result):
         channel = self._channels
         settings = self._settings
         assert isinstance(channel, np.recarray)
-        print ('\n*=========*=====*===============*===========*=============*========*')
-        print ('| Channel | PRN |   Frequency   |  Doppler  | Code Offset | Status |')
-        print ('*=========*=====*===============*===========*=============*========*')
+        print('\n*=========*=====*===============*===========*=============*========*')
+        print('| Channel | PRN |   Frequency   |  Doppler  | Code Offset | Status |')
+        print('*=========*=====*===============*===========*=============*========*')
         for channelNr in range(settings.numberOfChannels):
             if channel[channelNr].status != '-':
-                print '|      %2d | %3d |  %2.5e |   %5.0f   |    %6d   |     %1s  |' % (
+                print('|      %2d | %3d |  %2.5e |   %5.0f   |    %6d   |     %1s  |' % (
                     channelNr,
                     channel[channelNr].PRN,
                     channel[channelNr].acquiredFreq,
                     channel[channelNr].acquiredFreq - settings.IF,
                     channel[channelNr].codePhase,
-                    channel[channelNr].status)
+                    channel[channelNr].status))
             else:
-                print '|      %2d | --- |  ------------ |   -----   |    ------   |   Off  |' % channelNr
+                print('|      %2d | --- |  ------------ |   -----   |    ------   |   Off  |' % channelNr)
 
-        print '*=========*=====*===============*===========*=============*========*\n'
+        print('*=========*=====*===============*===========*=============*========*\n')
 
 
 if __name__ == '__main__':
