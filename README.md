@@ -4,7 +4,7 @@ This is a GNSS Software Defined Radio (SDR) implemented in python, based on Soft
 
 # System requirements
 
-* python 2.7
+* python 3
 * matplotlib
 * scipy
 * numpy
@@ -26,6 +26,6 @@ Coming soon!
 
 # Updates
 * I/Q file support added
-* fileType added to settings, byte(schar), single(float) supported
+* fileType added to settings, **all datetypes** in **numpy.dtype** are supported 
 * little bug solved
  
