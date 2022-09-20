@@ -1,5 +1,5 @@
 import initialize
-
+import numpy as np
 # ./init.m
 
 # --------------------------------------------------------------------------
@@ -52,6 +52,22 @@ import initialize
     # '                   -------------------------------\n\n'
 # Initialize settings class=========================================
 settings = initialize.Settings()
+
+# add arguments parsing to override settings
+import argparse
+parser=argparse.ArgumentParser()
+parser.add_argument("-f","--file",help="the source file")
+parser.add_argument("-s","--samp_rate",help="sampling frequency",type=int)
+parser.add_argument("-d","--dtype",help="datatype, numpy dtypes")
+args=parser.parse_args()
+
+if(args.file):
+    settings.fileName=args.file
+if(args.samp_rate):
+    settings.samplingFreq=args.samp_rate
+if(args.dtype):
+    settings.dataType=args.dtype
+    settings.skipNumberOfBytes=int(settings.skipNumberOfSamples*settings.fileType*np.dtype(settings.dataType).itemsize)
 
 # Generate plot of raw data and ask if ready to start processing =========
 try:

@@ -87,15 +87,10 @@ class Settings(object):
         # Number of channels to be used for signal processing
         self.numberOfChannels = 2
 
-        # Move the starting point of processing. Can be used to start the signal
-        # processing at any point in the data record (e.g. for long records). fseek
-        # function is used to move the file read point, therefore advance is byte
-        # based only.
-        self.skipNumberOfBytes = 0*8*10e6
-
-        #it seems that skipNumberOfSamples works in tracking while the 
-        #skipNumberOfBytes works in acquasition
+        # modifyed by mortarboard in 2022 09 20
+        # self.skipNumberOfBytes are calculated according to the number of samples and datatype
         self.skipNumberOfSamples=0
+        self.skipNumberOfSamples=int(self.skipNumberOfSamples)
 
         self.fileType=2
         #1 for real signal, 2 for I/Q signal
@@ -107,6 +102,9 @@ class Settings(object):
 
         # Data type used to store one sample
         self.dataType = 'float32'
+
+        # calculate skip bytes
+        self.skipNumberOfBytes = int(self.skipNumberOfSamples*self.fileType*np.dtype(self.dataType).itemsize)
 
         # Intermediate, sampling and code frequencies
         self.IF = 0
