@@ -15,14 +15,9 @@ Coming soon!
 
 # Running the GNSS SDR
 
-1. Examine "main.py"
-2. Tweak parameters for the "settings" class if necessary
-3. Specify the binary file to be processed and run "main.py"
-4. Wait until it is finished
+1. run ```python main.py -f=your\file\path -s=(your sampling frequency in Hz) -d=(numpy dtypes, float32 .etc.)```
+2. if you want to modify other settings like skipNumofSamples or set file source to be real signal not complex signal (default complex) check "initialize.py".
 
-
-# Resources
-* The official homepage of the textbook
 
 # Updates
 * I/Q file support added
