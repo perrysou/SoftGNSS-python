@@ -54,7 +54,7 @@ def cart2geo(X, Y, Z, i, *args, **kwargs):
         iterations += 1
 
         if iterations > 100:
-            print 'Failed to approximate h with desired precision. h-oldh: %e.' % (h - oldh)
+            print ('Failed to approximate h with desired precision. h-oldh: %e.' % (h - oldh))
             break
 
     phi *= (180 / np.pi)
@@ -264,7 +264,7 @@ def cart2utm(X, Y, Z, zone, *args, **kwargs):
         iterations += 1
 
         if iterations > 100:
-            print 'Failed to approximate U with desired precision. U-oldU: %e.' % (U - oldU)
+            print ('Failed to approximate U with desired precision. U-oldU: %e.' % (U - oldU))
             break
 
     # Normalized meridian quadrant, KW p. 50 (96), p. 19 (38b), p. 5 (21)
@@ -991,7 +991,7 @@ def togeod(a, finv, X, Y, Z, *args, **kwargs):
             break
         # Not Converged--Warn user
         if i == maxit - 1:
-            print ' Problem in TOGEOD, did not converge in %2.0f iterations' % i
+            print (' Problem in TOGEOD, did not converge in %2.0f iterations' % i)
 
     dphi *= rtd
     return dphi, dlambda, h
@@ -1192,4 +1192,4 @@ if __name__ == '__main__':
     # print "This program is being run by itself"
     pass
 else:
-    print 'Importing functions from ./geoFunctions/'
+    print ('Importing functions from ./geoFunctions/')

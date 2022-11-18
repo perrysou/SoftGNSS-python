@@ -87,13 +87,14 @@ class AcquisitionResult(Result):
         # Correlation peak ratios of the detected signals
         peakMetric = np.zeros(32)
 
-        print '('
+        print('(')
         # Perform search for all listed PRN numbers ...
         for PRN in range(len(settings.acqSatelliteList)):
             # Correlate signals ======================================================
             # --- Perform DFT of C/A code ------------------------------------------
             caCodeFreqDom = np.fft.fft(caCodesTable[PRN, :]).conj()
 
+            #Make the correlation for whole frequency band (for all freq. bins)
             for frqBinIndex in range(numberOfFrqBins):
                 # --- Generate carrier wave frequency grid (0.5kHz step) -----------
                 frqBins[frqBinIndex] = settings.IF - \
@@ -104,13 +105,15 @@ class AcquisitionResult(Result):
 
                 cosCarr = np.cos(frqBins[frqBinIndex] * phasePoints)
 
-                I1 = sinCarr * signal1
+                sigCarr=np.exp(1j*frqBins[frqBinIndex] * phasePoints)
 
-                Q1 = cosCarr * signal1
+                I1 = np.real(sigCarr * signal1)
 
-                I2 = sinCarr * signal2
+                Q1 = np.imag(sigCarr * signal1)
 
-                Q2 = cosCarr * signal2
+                I2 = np.real(sigCarr * signal2)
+
+                Q2 = np.imag(sigCarr * signal2)
 
                 IQfreqDom1 = np.fft.fft(I1 + 1j * Q1)
 
@@ -121,9 +124,10 @@ class AcquisitionResult(Result):
 
                 convCodeIQ2 = IQfreqDom2 * caCodeFreqDom
 
-                acqRes1 = abs(np.fft.ifft(convCodeIQ1)) ** 2
+                #Perform inverse DFT and store correlation results
+                acqRes1 = abs(np.fft.ifft(convCodeIQ1))
 
-                acqRes2 = abs(np.fft.ifft(convCodeIQ2)) ** 2
+                acqRes2 = abs(np.fft.ifft(convCodeIQ2))
 
                 # "blend" 1st and 2nd msec but will correct data bit issues
                 if acqRes1.max() > acqRes2.max():
@@ -142,14 +146,14 @@ class AcquisitionResult(Result):
             peakSize = results.max(0).max()
             codePhase = results.max(0).argmax()
 
-            samplesPerCodeChip = long(round(settings.samplingFreq / settings.codeFreqBasis))
+            samplesPerCodeChip = int(round(settings.samplingFreq / settings.codeFreqBasis))
 
             excludeRangeIndex1 = codePhase - samplesPerCodeChip
 
             excludeRangeIndex2 = codePhase + samplesPerCodeChip
 
             # boundaries
-            if excludeRangeIndex1 <= 0:
+            if excludeRangeIndex1 <= 1:
                 codePhaseRange = np.r_[excludeRangeIndex2:samplesPerCode + excludeRangeIndex1 + 1]
 
             elif excludeRangeIndex2 >= samplesPerCode - 1:
@@ -166,7 +170,7 @@ class AcquisitionResult(Result):
             if (peakSize / secondPeakSize) > settings.acqThreshold:
                 # Fine resolution frequency search =======================================
                 # --- Indicate PRN number of the detected signal -------------------
-                print '%02d ' % (PRN + 1)
+                print('%02d ' % (PRN + 1))
                 caCode = settings.generateCAcode(PRN)
 
                 codeValueIndex = np.floor(ts * np.arange(1, 10 * samplesPerCode + 1) / (1.0 / settings.codeFreqBasis))
@@ -178,26 +182,44 @@ class AcquisitionResult(Result):
 
                 fftNumPts = 8 * 2 ** (np.ceil(np.log2(len(xCarrier))))
 
+                #Compute the magnitude of the FFT, find maximum and the
                 # associated carrier frequency
                 fftxc = np.abs(np.fft.fft(xCarrier, np.long(fftNumPts)))
 
                 uniqFftPts = np.long(np.ceil((fftNumPts + 1) / 2.0))
 
-                fftMax = fftxc[4:uniqFftPts - 5].max()
-                fftMaxIndex = fftxc[4:uniqFftPts - 5].argmax()
+                #fftMax = fftxc[4:uniqFftPts - 5].max()
+                #fftMaxIndex = fftxc[4:uniqFftPts - 5].argmax()
+                fftMax = fftxc.max()
+                fftMaxIndex = fftxc.argmax()
 
                 fftFreqBins = np.arange(uniqFftPts) * settings.samplingFreq / fftNumPts
 
-                carrFreq[PRN] = fftFreqBins[fftMaxIndex]
+                print('fftxcsize: %4d' %np.size(fftxc))
+                if fftMaxIndex>uniqFftPts:
+                    if fftNumPts%2==0:
+                        fftFreqBinsRev=-fftFreqBins[(uniqFftPts-2):0:-1]
+                        fftMax=fftxc[(uniqFftPts):np.size(fftxc)].max()
+                        fftMaxIndex = fftxc[(uniqFftPts):np.size(fftxc)].argmax()
+                        carrFreq[PRN]=-fftFreqBinsRev[fftMaxIndex-1]
+                    else:
+                        fftFreqBinsRev=-fftFreqBins[(uniqFftPts-1):0:-1]
+                        fftMax=fftxc[(uniqFftPts):np.size(fftxc)].max()
+                        fftMaxIndex = fftxc[(uniqFftPts):np.size(fftxc)].argmax()
+                        carrFreq[PRN]=fftFreqBinsRev[fftMaxIndex-1]
+                else:
+                    carrFreq[PRN]=(-1)**(settings.fileType-1)*fftFreqBins[fftMaxIndex-1]
+
+                #carrFreq[PRN] = fftFreqBins[fftMaxIndex]
 
                 codePhase_[PRN] = codePhase
 
             else:
                 # --- No signal with this PRN --------------------------------------
-                print '. '
+                print('. ')
 
         # === Acquisition is over ==================================================
-        print ')\n'
+        print(')\n')
         acqResults = np.core.records.fromarrays([carrFreq, codePhase_, peakMetric],
                                                 names='carrFreq,codePhase,peakMetric')
         self._results = acqResults
@@ -209,17 +231,18 @@ class AcquisitionResult(Result):
         import matplotlib.pyplot as plt
         # from scipy.io.matlab import loadmat
 
+        print("start to plot acqusition")
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], autolayout=False, dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=16)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], autolayout=False, dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=16)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -249,7 +272,7 @@ class AcquisitionResult(Result):
         hAxes.xaxis.grid()
         # Mark acquired signals ==================================================
 
-        acquiredSignals = self.peakMetric * (self.carrFreq > 0)
+        acquiredSignals = self.peakMetric * (self.peakMetric > self._settings.acqThreshold)
 
         plt.bar(range(1, 33), acquiredSignals, FaceColor=(0, 0.8, 0))
         plt.legend(['Not acquired signals', 'Acquired signals'])
@@ -291,7 +314,7 @@ class AcquisitionResult(Result):
         # --- Load information about each satellite --------------------------------
         # Maximum number of initialized channels is number of detected signals, but
         # not more as the number of channels specified in the settings.
-        for ii in range(min(settings.numberOfChannels, sum(self.carrFreq > 0))):
+        for ii in range(min(settings.numberOfChannels, sum(self.peakMetric > self._settings.acqThreshold))):
             PRN[ii] = PRNindexes[ii][0] + 1
 
             acquiredFreq[ii] = self.carrFreq[PRNindexes[ii][0]]
@@ -318,22 +341,22 @@ class AcquisitionResult(Result):
         channel = self._channels
         settings = self._settings
         assert isinstance(channel, np.recarray)
-        print ('\n*=========*=====*===============*===========*=============*========*')
-        print ('| Channel | PRN |   Frequency   |  Doppler  | Code Offset | Status |')
-        print ('*=========*=====*===============*===========*=============*========*')
+        print('\n*=========*=====*===============*===========*=============*========*')
+        print('| Channel | PRN |   Frequency   |  Doppler  | Code Offset | Status |')
+        print('*=========*=====*===============*===========*=============*========*')
         for channelNr in range(settings.numberOfChannels):
             if channel[channelNr].status != '-':
-                print '|      %2d | %3d |  %2.5e |   %5.0f   |    %6d   |     %1s  |' % (
+                print('|      %2d | %3d |  %2.5e |   %5.0f   |    %6d   |     %1s  |' % (
                     channelNr,
                     channel[channelNr].PRN,
                     channel[channelNr].acquiredFreq,
                     channel[channelNr].acquiredFreq - settings.IF,
                     channel[channelNr].codePhase,
-                    channel[channelNr].status)
+                    channel[channelNr].status))
             else:
-                print '|      %2d | --- |  ------------ |   -----   |    ------   |   Off  |' % channelNr
+                print('|      %2d | --- |  ------------ |   -----   |    ------   |   Off  |' % channelNr)
 
-        print '*=========*=====*===============*===========*=============*========*\n'
+        print('*=========*=====*===============*===========*=============*========*\n')
 
 
 if __name__ == '__main__':

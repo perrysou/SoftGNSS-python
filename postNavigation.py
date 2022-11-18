@@ -10,7 +10,7 @@ class NavigationResult(Result):
         self._results = trackResult.results
         self._channels = trackResult.channels
         self._settings = trackResult.settings
-        self._solutions = None
+        self._solutions = No
         self._eph = None
 
     @property
@@ -103,7 +103,7 @@ class NavigationResult(Result):
 
         if settings.msToProcess < 36000 or sum(trackResults.status != '-') < 4:
             # Show the error message and exit
-            print 'Record is to short or too few satellites tracked. Exiting!'
+            #print'Record is to short or too few satellites tracked. Exiting!'
             navSolutions = None
             self._solutions = navSolutions
             eph = None
@@ -148,7 +148,7 @@ class NavigationResult(Result):
         # Check if the number of satellites is still above 3 =====================
         if activeChnList.size == 0 or activeChnList.size < 4:
             # Show error message and exit
-            print 'Too few satellites with ephemeris data for position calculations. Exiting!'
+            #print'Too few satellites with ephemeris data for position calculations. Exiting!'
             navSolutions = None
             self._solutions = navSolutions
             eph = None
@@ -263,7 +263,7 @@ class NavigationResult(Result):
 
             else:
                 # --- There are not enough satellites to find 3D position ----------
-                print '   Measurement No. %d' % currMeasNr + ': Not enough information for position solution.'
+                #print'   Measurement No. %d' % currMeasNr + ': Not enough information for position solution.'
                 # excluded automatically in all plots. For DOP it is easier to use
                 # zeros. NaN values might need to be excluded from results in some
                 # of further processing to obtain correct results.
@@ -436,7 +436,7 @@ class NavigationResult(Result):
             h32.set_title('Sky plot (mean PDOP: %f )' % np.mean(navSolutions[0].DOP[1, :]))
             f.show()
         else:
-            print 'plotNavigation: No navigation data to plot.'
+            print('plotNavigation: No navigation data to plot.')
 
     @staticmethod
     # navPartyChk.m
@@ -627,7 +627,7 @@ class NavigationResult(Result):
                 # valid preamble and therefore nothing more can be done for it.
                 activeChnList = np.setdiff1d(activeChnList, channelNr)
 
-                print 'Could not find valid preambles in channel %2d !' % channelNr
+                #print'Could not find valid preambles in channel %2d !' % channelNr
         return firstSubFrame, activeChnList
 
 

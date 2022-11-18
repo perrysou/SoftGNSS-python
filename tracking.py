@@ -52,12 +52,20 @@ class TrackingResult(Result):
         tau1carr, tau2carr = settings.calcLoopCoef(settings.pllNoiseBandwidth, settings.pllDampingRatio, 0.25)
 
         #     hwb=waitbar(0,'Tracking...')
+        if settings.fileType==1:
+            dataAdaptCoeff=1
+        else:
+            dataAdaptCoeff=2
+
 
         # Initialize a temporary list of records
         rec = []
         # Start processing channels ==============================================
         for channelNr in range(settings.numberOfChannels):
+
+            
             msToProcess = np.long(settings.msToProcess)
+
             # Initialize fields for record(structured) array of tracked results
             status = '-'
 
@@ -97,24 +105,44 @@ class TrackingResult(Result):
 
             # Only process if PRN is non zero (acquisition was successful)
             if channel[channelNr].PRN != 0:
+                #print' starting to trackc PRN: %2d' %channel[channelNr].PRN
                 # Save additional information - each channel's tracked PRN
                 PRN = channel[channelNr].PRN
+
+
 
                 # signal processing at any point in the data record (e.g. for long
                 # records). In addition skip through that data file to start at the
                 # appropriate sample (corresponding to code phase). Assumes sample
                 # type is schar (or 1 byte per sample)
-                fid.seek(settings.skipNumberOfBytes + channel[channelNr].codePhase, 0)
-                # Here PRN is the actual satellite ID instead of the 0-based index
-                caCode = settings.generateCAcode(channel[channelNr].PRN - 1)
 
-                caCode = np.r_[caCode[-1], caCode, caCode[0]]
+                sbCoeff=np.dtype(settings.dataType).itemsize
+                # if settings.dataType=='float32':
+                #    sbCoeff=4
+                # if settings.dataType=='single':
+                #     sbCoeff=4
+                # if settings.dataType=='byte':
+                #     sbCoeff=1
+                #if settings.dataType=='float':
+                #    sbCoeff=4
+                #if settings.dataType=='float':
+                #    sbCoeff=4
+                #if settings.dataType=='float':
+                #    sbCoeff=4
+
+                fid.seek(int(np.round(sbCoeff*dataAdaptCoeff*(settings.skipNumberOfSamples + channel[channelNr].codePhase))), 0)
+                # Here PRN is the actual satellite ID instead of the 0-based index
+                caCode = settings.generateCAcode(channel[channelNr].PRN-1)
+
+                caCode = np.r_[caCode[-1], caCode, caCode[0], caCode[1]]
 
                 # define initial code frequency basis of NCO
                 codeFreq = settings.codeFreqBasis
 
+                #define residual code phase (in chips)
                 remCodePhase = 0.0
 
+                #define carrier frequency which is used over whole tracking period
                 carrFreq = channel[channelNr].acquiredFreq
 
                 carrFreqBasis = channel[channelNr].acquiredFreq
@@ -136,9 +164,9 @@ class TrackingResult(Result):
                     # all the time with GUI task.
                     if loopCnt % 50 == 0:
                         try:
-                            print 'Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
+                            print('Tracking: Ch %d' % (channelNr + 1) + ' of %d' % settings.numberOfChannels + \
                                   '; PRN#%02d' % channel[channelNr].PRN + \
-                                  '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec'
+                                  '; Completed %d' % loopCnt + ' of %d' % codePeriods + ' msec')
                         finally:
                             pass
                     # Read next block of data ------------------------------------------------
@@ -151,43 +179,56 @@ class TrackingResult(Result):
                     blksize = np.long(blksize)
 
                     # interaction
-                    rawSignal = np.fromfile(fid, settings.dataType, blksize)
+                    rawSignal = np.fromfile(fid, settings.dataType, dataAdaptCoeff*blksize)
                     samplesRead = len(rawSignal)
+                    
+                    if dataAdaptCoeff==2:
+                        rawSignal1=rawSignal[0:samplesRead:2]
+                        rawSignal2=rawSignal[1:samplesRead:2]
+                        rawSignal2=rawSignal2.astype(complex)
+                        rawSignal2.imag=rawSignal2.real
+                        rawSignal2.real=rawSignal1
+                        rawSignal=rawSignal2
+                    
 
                     # If did not read in enough samples, then could be out of
                     # data - better exit
-                    if samplesRead != blksize:
-                        print 'Not able to read the specified number of samples for tracking, exiting!'
+                    if samplesRead != dataAdaptCoeff*blksize:
+                        print('Not able to read the specified number of samples for tracking, exiting!')
                         fid.close()
                         trackResults = None
                         return trackResults
                     # Set up all the code phase tracking information -------------------------
                     # Define index into early code vector
                     tcode = np.linspace(remCodePhase - earlyLateSpc,
-                                        blksize * codePhaseStep + remCodePhase - earlyLateSpc,
-                                        blksize, endpoint=False)
+                                        (blksize-1) * codePhaseStep + remCodePhase - earlyLateSpc,
+                                        blksize, endpoint=True)
 
                     tcode2 = np.ceil(tcode)
 
                     earlyCode = caCode[np.longlong(tcode2)]
-
+                    
+                    # Define index into late code vector
                     tcode = np.linspace(remCodePhase + earlyLateSpc,
-                                        blksize * codePhaseStep + remCodePhase + earlyLateSpc,
-                                        blksize, endpoint=False)
+                                        (blksize-1) * codePhaseStep + remCodePhase + earlyLateSpc,
+                                        blksize, endpoint=True)
 
                     tcode2 = np.ceil(tcode)
 
                     lateCode = caCode[np.longlong(tcode2)]
 
+                    # Define index into prompt code vector
                     tcode = np.linspace(remCodePhase,
-                                        blksize * codePhaseStep + remCodePhase,
-                                        blksize, endpoint=False)
+                                        (blksize-1) * codePhaseStep + remCodePhase,
+                                        blksize, endpoint=True)
 
                     tcode2 = np.ceil(tcode)
 
                     promptCode = caCode[np.longlong(tcode2)]
 
                     remCodePhase = tcode[blksize - 1] + codePhaseStep - 1023.0
+
+                    
 
                     # Generate the carrier frequency to mix the signal to baseband -----------
                     time = np.arange(0, blksize + 1) / settings.samplingFreq
@@ -200,11 +241,12 @@ class TrackingResult(Result):
 
                     carrSin = np.sin(trigarg[0:blksize])
 
+                    carrsig=np.exp(1j*trigarg[0:blksize])
                     # Generate the six standard accumulated values ---------------------------
                     # First mix to baseband
-                    qBasebandSignal = carrCos * rawSignal
+                    qBasebandSignal = np.real(carrsig * rawSignal)
 
-                    iBasebandSignal = carrSin * rawSignal
+                    iBasebandSignal = np.imag(carrsig * rawSignal)
 
                     I_E = (earlyCode * iBasebandSignal).sum()
 
@@ -230,6 +272,7 @@ class TrackingResult(Result):
 
                     oldCarrError = carrError
 
+                    #Modify carrier freq based on NCO command
                     carrFreq = carrFreqBasis + carrNco
 
                     carrFreq_[loopCnt] = carrFreq
@@ -238,6 +281,7 @@ class TrackingResult(Result):
                     codeError = (np.sqrt(I_E * I_E + Q_E * Q_E) - np.sqrt(I_L * I_L + Q_L * Q_L)) / (
                             np.sqrt(I_E * I_E + Q_E * Q_E) + np.sqrt(I_L * I_L + Q_L * Q_L))
 
+                    #Implement code loop filter and generate NCO command
                     codeNco = oldCodeNco + \
                               tau2code / tau1code * (codeError - oldCodeError) + \
                               codeError * (PDIcode / tau1code)
@@ -246,6 +290,7 @@ class TrackingResult(Result):
 
                     oldCodeError = codeError
 
+                    #Modify code freq based on NCO command
                     codeFreq = settings.codeFreqBasis - codeNco
 
                     codeFreq_[loopCnt] = codeFreq
@@ -281,6 +326,7 @@ class TrackingResult(Result):
                 rec.append((status, absoluteSample, codeFreq_, carrFreq_,
                             I_P_, I_E_, I_L_, Q_E_, Q_P_, Q_L_,
                             dllDiscr, dllDiscrFilt, pllDiscr, pllDiscrFilt, PRN))
+                ##print'tracked a signal %2d' %np.size(rec)
 
         trackResults = np.rec.fromrecords(rec,
                                           dtype=[('status', 'S1'), ('absoluteSample', 'object'), ('codeFreq', 'object'),
@@ -298,16 +344,16 @@ class TrackingResult(Result):
         import matplotlib as mpl
 
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -318,21 +364,22 @@ class TrackingResult(Result):
         settings = self._settings
         channelList = range(settings.numberOfChannels)
 
+
         import matplotlib as mpl
         import matplotlib.gridspec as gs
         import matplotlib.pyplot as plt
 
         # %% configure matplotlib
-        mpl.rcdefaults()
-        # mpl.rcParams['font.sans-serif']
-        # mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('savefig', bbox='tight', transparent=False, format='png')
-        mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
-        mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
-        mpl.rc('figure', figsize=[8, 6], dpi=120)
-        mpl.rc('text', usetex=True)
-        mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
-        mpl.rc('mathtext', fontset='cm')
+        # mpl.rcdefaults()
+        # # mpl.rcParams['font.sans-serif']
+        # # mpl.rcParams['font.family'] = 'serif'
+        # mpl.rc('savefig', bbox='tight', transparent=False, format='png')
+        # mpl.rc('axes', grid=True, linewidth=1.5, axisbelow=True)
+        # mpl.rc('lines', linewidth=1.5, solid_joinstyle='bevel')
+        # mpl.rc('figure', figsize=[8, 6], dpi=120)
+        # mpl.rc('text', usetex=True)
+        # mpl.rc('font', family='serif', serif='Computer Modern Roman', size=8)
+        # mpl.rc('mathtext', fontset='cm')
 
         # mpl.rc('font', size=16)
         # mpl.rc('text.latex', preamble=r'\usepackage{cmbright}')
@@ -350,14 +397,16 @@ class TrackingResult(Result):
 
         # Protection - if the list contains incorrect channel numbers
         channelList = np.intersect1d(channelList, range(settings.numberOfChannels))
-
+        channel = self._channels
         # === For all listed channels ==============================================
-        for channelNr in channelList:
+        for channelNr in range(np.size(trackResults)):
             # Select (or create) and clear the figure ================================
             # The number 200 is added just for more convenient handling of the open
             # figure windows, when many figures are closed and reopened.
             # Figures drawn or opened by the user, will not be "overwritten" by
             # this function.
+            print(' %2d' %np.size(trackResults))
+
             f = plt.figure(channelNr + 200)
             f.set_label('Channel ' + str(channelNr) +
                         ' (PRN ' + str(trackResults[channelNr].PRN) + ') results')
@@ -424,3 +473,6 @@ class TrackingResult(Result):
                     ylabel='Amplitude',
                     title='Filtered DLL discriminator')
             f.show()
+
+        #something just get past the period
+

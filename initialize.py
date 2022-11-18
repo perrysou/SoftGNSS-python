@@ -82,31 +82,36 @@ class Settings(object):
         # Processing settings ====================================================
         # Number of milliseconds to be processed used 36000 + any transients (see
         # below - in Nav parameters) to ensure nav subframes are provided
-        self.msToProcess = 37000.0
+        self.msToProcess = 10000.0
 
         # Number of channels to be used for signal processing
-        self.numberOfChannels = 8
+        self.numberOfChannels = 2
 
-        # Move the starting point of processing. Can be used to start the signal
-        # processing at any point in the data record (e.g. for long records). fseek
-        # function is used to move the file read point, therefore advance is byte
-        # based only.
-        self.skipNumberOfBytes = 0
+        # modifyed by mortarboard in 2022 09 20
+        # self.skipNumberOfBytes are calculated according to the number of samples and datatype
+        self.skipNumberOfSamples=0
+        self.skipNumberOfSamples=int(self.skipNumberOfSamples)
+
+        self.fileType=2
+        #1 for real signal, 2 for I/Q signal
 
         # Raw signal file name and other parameter ===============================
         # This is a "default" name of the data file (signal record) to be used in
         # the post-processing mode
-        self.fileName = '/Users/yangsu/Downloads/GNSS_signal_records/GPSdata-DiscreteComponents-fs38_192-if9_55.bin'
+        self.fileName = 'test.bin'
 
         # Data type used to store one sample
-        self.dataType = 'int8'
+        self.dataType = 'float32'
+
+        # calculate skip bytes
+        self.skipNumberOfBytes = int(self.skipNumberOfSamples*self.fileType*np.dtype(self.dataType).itemsize)
 
         # Intermediate, sampling and code frequencies
-        self.IF = 9548000.0
+        self.IF = 0
 
-        self.samplingFreq = 38192000.0
+        self.samplingFreq = 2.6e6
 
-        self.codeFreqBasis = 1023000.0
+        self.codeFreqBasis = 1.023e6
 
         # Define number of chips in a code period
         self.codeLength = 1023
@@ -120,10 +125,10 @@ class Settings(object):
         self.acqSatelliteList = range(1, 33)
 
         # Band around IF to search for satellite signal. Depends on max Doppler
-        self.acqSearchBand = 14.0
+        self.acqSearchBand = 20.0   #(KHz)
 
         # Threshold for the signal presence decision rule
-        self.acqThreshold = 2.5
+        self.acqThreshold = 1.4
 
         # Tracking loops settings ================================================
         # Code tracking loop parameters
@@ -131,7 +136,7 @@ class Settings(object):
 
         self.dllNoiseBandwidth = 2.0
 
-        self.dllCorrelatorSpacing = 0.5
+        self.dllCorrelatorSpacing = 0.5 #(chips)
 
         # Carrier tracking loop parameters
         self.pllDampingRatio = 0.7
@@ -331,7 +336,7 @@ class Settings(object):
 
         import matplotlib.pyplot as plt
         from scipy.signal import welch
-        from scipy.signal.windows.windows import hamming
+        from scipy.signal.windows import hamming
 
         # Function plots raw data information: time domain plot, a frequency domain
         # plot and a histogram.
@@ -362,59 +367,118 @@ class Settings(object):
                 # Move the starting point of processing. Can be used to start the
                 # signal processing at any point in the data record (e.g. for long
                 # records).
-                fid.seek(settings.skipNumberOfBytes, 0)
+                fid.seek(int(settings.skipNumberOfBytes), 0)
                 samplesPerCode = settings.samplesPerCode
+
+                if self.fileType==1:
+                    dataAdaptCoeff=1
+                else:
+                    dataAdaptCoeff=2
+
 
                 try:
                     data = np.fromfile(fid,
                                        settings.dataType,
-                                       10 * samplesPerCode)
+                                       dataAdaptCoeff*100 * samplesPerCode)
+                    dataLength=np.size(data)
+                    
+                    if self.fileType==2:#if IQ file
+                        data1=data[0:dataLength:2]
+                        data2=data[1:dataLength:2]
+                        data2=data2.astype(complex)
+                        data2.imag=data2.real
+                        data2.real=data1
+                        data=data2
+                    
 
                 except IOError:
                     # The file is too short
-                    print 'Could not read enough data from the data file.'
+                    print('Could not read enough data from the data file.')
                 # --- Initialization ---------------------------------------------------
                 plt.figure(100)
                 plt.clf()
                 timeScale = np.arange(0, 0.005, 1 / settings.samplingFreq)
 
-                plt.subplot(2, 2, 1)
-                plt.plot(1000 * timeScale[1:samplesPerCode / 50],
-                         data[1:samplesPerCode / 50])
-                plt.axis('tight')
-                plt.grid()
-                plt.title('Time domain plot')
-                plt.xlabel('Time (ms)')
-                plt.ylabel('Amplitude')
-                plt.subplot(2, 2, 2)
-                f, Pxx = welch(data - np.mean(data),
-                               settings.samplingFreq / 1000000.0,
-                               hamming(16384, False),
-                               16384,
-                               1024,
-                               16384)
-                plt.semilogy(f, Pxx)
-                plt.axis('tight')
-                plt.grid()
-                plt.title('Frequency domain plot')
-                plt.xlabel('Frequency (MHz)')
-                plt.ylabel('Magnitude')
-                plt.show()
-                plt.subplot(2, 2, 3.5)
-                plt.hist(data, np.arange(- 128, 128))
-                dmax = np.max(np.abs(data)) + 1
+                #for real signal
+                if self.fileType==1:
+                    #Time Domain plot
+                    plt.subplot(2, 2, 1)
+                    plt.plot(1000 * timeScale[1:samplesPerCode],
+                            data[1:samplesPerCode])
+                    plt.axis('tight')
+                    plt.grid()
+                    plt.title('Time domain plot')
+                    plt.xlabel('Time (ms)')
+                    plt.ylabel('Amplitude')
 
-                plt.axis('tight')
-                adata = plt.axis()
+                    #Frequency Domain plot
+                    plt.subplot(2, 2, 2)
+                    f, Pxx = welch(data - np.mean(data),
+                                settings.samplingFreq / 1000000.0,
+                                hamming(16384, False),
+                                16384,
+                                1024,
+                                16384)
+                    plt.semilogy(f, Pxx)
+                    plt.axis('tight')
+                    plt.grid()
+                    plt.title('Frequency domain plot')
+                    plt.xlabel('Frequency (MHz)')
+                    plt.ylabel('Magnitude')
+                    plt.show()
 
-                plt.axis([-dmax, dmax, adata[2], adata[3]])
-                plt.grid('on')
-                plt.title('Histogram')
-                plt.xlabel('Bin')
-                plt.ylabel('Number in bin')
+                    #Histogram plot
+                    plt.subplot(2, 2, 3.5)
+                    plt.hist(data, np.arange(- 128, 128))
+                    dmax = np.max(np.abs(data)) + 1
+
+                    plt.axis('tight')
+                    adata = plt.axis()
+
+                    plt.axis([-dmax, dmax, adata[2], adata[3]])
+                    plt.grid('on')
+                    plt.title('Histogram')
+                    plt.xlabel('Bin')
+                    plt.ylabel('Number in bin')
+                # for IQ signal
+                else:
+                    #Time Domain plot
+                    plt.subplot(2, 2, 1)
+                    plt.plot(1000 * timeScale[1:samplesPerCode],
+                            data.real[1:samplesPerCode])
+                    plt.axis('tight')
+                    plt.grid()
+                    plt.title('Time domain plot (Real/I)')
+                    plt.xlabel('Time (ms)')
+                    plt.ylabel('Amplitude')
+
+                    plt.subplot(2, 2, 2)
+                    plt.plot(1000 * timeScale[1:samplesPerCode],
+                            data.imag[1:samplesPerCode])
+                    plt.axis('tight')
+                    plt.grid()
+                    plt.title('Time domain plot (Imag/Q)')
+                    plt.xlabel('Time (ms)')
+                    plt.ylabel('Amplitude')
+
+                    #Frequency Domain plot
+                    plt.subplot(2, 2, 3.5)
+                    f, Pxx = welch(data - np.mean(data),
+                                settings.samplingFreq / 1000000.0,
+                                hamming(16384, False),
+                                16384,
+                                1024,
+                                16384)
+                    plt.semilogy(f, Pxx)
+                    plt.axis('tight')
+                    plt.grid()
+                    plt.title('Frequency domain plot')
+                    plt.xlabel('Frequency (MHz)')
+                    plt.ylabel('Magnitude')
+                    plt.show()
             # === Error while opening the data file ================================
-        except IOError as e:
-            print 'Unable to read file "%s": %s' % (fileNameStr, e)
+        except:
+            print("unable to read file")
 
     # ./postProcessing.m
 
@@ -456,7 +520,7 @@ class Settings(object):
         import acquisition
         import postNavigation
         import tracking
-        print 'Starting processing...'
+        print('Starting processing...')
         settings = self
         if not fileNameStr:
             fileNameStr = settings.fileName
@@ -469,7 +533,8 @@ class Settings(object):
                 # Move the starting point of processing. Can be used to start the
                 # signal processing at any point in the data record (e.g. good for long
                 # records or for signal processing in blocks).
-                fid.seek(settings.skipNumberOfBytes, 0)
+                fid.seek(int(settings.skipNumberOfBytes), 0)
+                
                 # Acquisition ============================================================
                 # Do acquisition if it is not disabled in settings or if the variable
                 # acqResults does not exist.
@@ -477,13 +542,29 @@ class Settings(object):
                     # Find number of samples per spreading code
                     samplesPerCode = settings.samplesPerCode
 
-                    # frequency estimation
-                    data = np.fromfile(fid, settings.dataType, 11 * samplesPerCode)
+                    if self.fileType==1:
+                        dataAdaptCoeff=1
+                    else:
+                        dataAdaptCoeff=2
 
-                    print '   Acquiring satellites...'
+                    # frequency estimation
+                    data = np.fromfile(fid, settings.dataType, dataAdaptCoeff*11 * samplesPerCode)
+
+                    dataLength=np.size(data)
+                    
+                    if self.fileType==2:#if IQ file
+                        data1=data[0:dataLength:2]
+                        data2=data[1:dataLength:2]
+                        data2=data2.astype(complex)
+                        data2.imag=data2.real
+                        data2.real=data1
+                        data=data2
+
+
+                    #print'   Acquiring satellites...'
                     acqResults = acquisition.AcquisitionResult(settings)
                     acqResults.acquire(data)
-                    acqResults.plot()
+                    #acqResults.plot()
                 # Initialize channels and prepare for the run ============================
                 # Start further processing only if a GNSS signal was acquired (the
                 # field FREQUENCY will be set to 0 for all not acquired signals)
@@ -492,36 +573,42 @@ class Settings(object):
                     acqResults.showChannelStatus()
                 else:
                     # No satellites to track, exit
-                    print 'No GNSS signals detected, signal processing finished.'
+                    #print'No GNSS signals detected, signal processing finished.'
                     trackResults = None
+                acqResults.plot()
 
+                print("Press Enter to continue...")
                 # Track the signal =======================================================
                 startTime = datetime.datetime.now()
 
-                print '   Tracking started at %s' % startTime.strftime('%X')
+                #print'   Tracking started at %s' % startTime.strftime('%X')
                 trackResults = tracking.TrackingResult(acqResults)
+                trackResults.track(fid)
+                trackResults.plot()
                 try:
                     trackResults.results = np.load('trackingResults_python.npy')
-                except IOError:
+
+                except :
                     trackResults.track(fid)
                     np.save('trackingResults_python', trackResults.results)
 
-                print '   Tracking is over (elapsed time %s s)' % (datetime.datetime.now() - startTime).total_seconds()
+                #print'   Tracking is over (elapsed time %s s)' % (datetime.datetime.now() - startTime).total_seconds()
                 # Auto save the acquisition & tracking results to save time.
-                print '   Saving Acquisition & Tracking results to storage'
+                #print'   Saving Acquisition & Tracking results to storage'
+                input("Press Enter to continue...")
                 # Calculate navigation solutions =========================================
-                print '   Calculating navigation solutions...'
+                #print'   Calculating navigation solutions...'
                 navResults = postNavigation.NavigationResult(trackResults)
                 navResults.postNavigate()
 
-                print '   Processing is complete for this data block'
+                #print'   Processing is complete for this data block'
                 # Plot all results ===================================================
-                print '   Plotting results...'
+                #print'   Plotting results...'
                 # TODO turn off tracking plots for now
                 if not settings.plotTracking:
                     trackResults.plot()
                 navResults.plot()
-                print 'Post processing of the signal is over.'
+                #print'Post processing of the signal is over.'
         except IOError as e:
             # Error while opening the data file.
-            print 'Unable to read file "%s": %s.' % (settings.fileName, e)
+            print('Unable to read file "%s": %s.' % (settings.fileName, e))
